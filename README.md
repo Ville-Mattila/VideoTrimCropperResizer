@@ -7,8 +7,13 @@ length, and export it as a widely compatible H.264 `.mp4`.**
 
 ## The app
 
-The built program is **`dist\VideoTrimCropResize.exe`** — double-click it,
-no install needed.
+Easiest: download **`VideoTrimCropResize-Setup.exe`** from the
+[Releases page](https://github.com/Ville-Mattila/VideoTrimCropperResizer/releases)
+and run it. It installs the app and ffmpeg together, adds a Start Menu
+shortcut, and registers an uninstaller (per-user — no admin prompt).
+
+Prefer no install? The portable zip and the standalone
+**`dist\VideoTrimCropResize.exe`** also work — just double-click.
 
 > It uses **ffmpeg** for the actual work, found on your PATH (or placed
 > next to the .exe). ffmpeg/ffprobe are already on this machine. To run the

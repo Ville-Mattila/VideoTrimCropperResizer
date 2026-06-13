@@ -3,6 +3,7 @@ build/
 dist/
 portable/
 /VideoTrimCropResize/
+installer/staging/
 __pycache__/
 *.pyc
 
