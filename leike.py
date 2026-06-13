@@ -187,6 +187,9 @@ class ExportSettings:
     hw: bool = False                # GPU encode (h264_nvenc) instead of libx264
     gif_fps: int = 15               # frame rate for GIF output
     target_size_mb: float | None = None  # two-pass to hit a max file size (mp4)
+    mute: bool = False              # drop the audio track
+    volume: float = 1.0             # audio gain (1.0 = unchanged)
+    audio_only: bool = False        # export audio as MP3, no video
 
 
 def _out_dims(s):
@@ -263,7 +266,8 @@ def _size_target_passes(s):
     """Two-pass libx264 sized to hit s.target_size_mb (audio at 128 kbit/s)."""
     dur = max(0.001, s.end - s.start)
     total_kbit = (s.target_size_mb * 8192) / dur
-    audio_kbit = 0 if getattr(s, "audio_only", False) else 128
+    silent = getattr(s, "audio_only", False) or getattr(s, "mute", False)
+    audio_kbit = 0 if silent else 128
     vbit = max(64, int((total_kbit - audio_kbit) * 0.97))   # 3% mux headroom
     log = s.output_path + ".2pass"
     null = "NUL" if os.name == "nt" else "/dev/null"
@@ -273,9 +277,22 @@ def _size_target_passes(s):
     p1 = [FFMPEG, "-y", *common, "-pass", "1", "-passlogfile", log,
           "-an", "-f", "mp4", null]
     p2 = [FFMPEG, "-y", *common, "-pass", "2", "-passlogfile", log,
-          "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart",
-          s.output_path]
+          *_audio_filter(s), *_audio_codec(s, "aac", "128k"),
+          "-movflags", "+faststart", s.output_path]
     return [p1, p2]
+
+
+def _audio_filter(s):
+    """`-af volume=...` (skipped when muted or at unity gain)."""
+    if not getattr(s, "mute", False) and getattr(s, "volume", 1.0) != 1.0:
+        return ["-af", f"volume={s.volume:.3f}"]
+    return []
+
+
+def _audio_codec(s, codec, bitrate):
+    if getattr(s, "mute", False):
+        return ["-an"]
+    return ["-c:a", codec, "-b:a", bitrate]
 
 
 def build_commands(s):
@@ -283,13 +300,18 @@ def build_commands(s):
     dur = max(0.001, s.end - s.start)
     common = ["-ss", f"{s.start:.3f}", "-i", s.input_path, "-t", f"{dur:.3f}"]
 
+    if getattr(s, "audio_only", False):
+        return [[FFMPEG, "-y", *common, "-vn", *_audio_filter(s),
+                 "-c:a", "libmp3lame", "-q:a", "2", s.output_path]]
+
     if s.fmt == "gif":
         return _gif_passes(s)
 
     if s.fmt == "webm":
         return [[FFMPEG, "-y", *common, "-vf", ",".join(_video_filters(s)),
                  "-c:v", "libvpx-vp9", "-crf", str(s.crf), "-b:v", "0",
-                 "-c:a", "libopus", "-b:a", "128k", s.output_path]]
+                 *_audio_filter(s), *_audio_codec(s, "libopus", "128k"),
+                 s.output_path]]
 
     # mp4
     if s.target_size_mb:
@@ -299,7 +321,7 @@ def build_commands(s):
                  s.output_path]]
     return [[FFMPEG, "-y", *common, "-vf", ",".join(_video_filters(s)), *_venc(s),
              "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-             "-c:a", "aac", "-b:a", "128k", s.output_path]]
+             *_audio_filter(s), *_audio_codec(s, "aac", "128k"), s.output_path]]
 
 
 class App(BaseTk):
@@ -583,6 +605,7 @@ class App(BaseTk):
         self.adv_btn.grid(row=3, column=0, sticky="ew", pady=(8, 2))
         self.advanced = ttk.Frame(right)
         self._build_encoding_panel(self.advanced)
+        self._build_audio_panel(self.advanced)
 
     def _build_crop_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Crop", padding=8)
@@ -757,6 +780,31 @@ class App(BaseTk):
                 return None
         return v
 
+    def _build_audio_panel(self, parent):
+        box = ttk.LabelFrame(parent, text="Audio", padding=8)
+        box.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        self.mute_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(box, text="Mute (remove audio)", variable=self.mute_var,
+                        command=self._update_export_hint).grid(
+            row=0, column=0, columnspan=2, sticky="w")
+        ttk.Label(box, text="Volume").grid(row=1, column=0, sticky="w",
+                                           pady=(4, 0))
+        self.volume_var = tk.IntVar(value=100)
+        vrow = ttk.Frame(box)
+        vrow.grid(row=2, column=0, columnspan=2, sticky="ew")
+        ttk.Scale(vrow, from_=0, to=200, variable=self.volume_var,
+                  command=self._on_volume, length=150).grid(row=0, column=0)
+        self.volume_label = ttk.Label(vrow, text="100%", width=5)
+        self.volume_label.grid(row=0, column=1, padx=(6, 0))
+        self.audio_only_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(box, text="Export audio only (MP3)",
+                        variable=self.audio_only_var,
+                        command=self._update_export_hint).grid(
+            row=3, column=0, columnspan=2, sticky="w", pady=(4, 0))
+
+    def _on_volume(self, _v):
+        self.volume_label.config(text=f"{self.volume_var.get()}%")
+
     def _on_crf(self, _v):
         self.crf_label.config(text=str(self.crf_var.get()))
 
@@ -777,7 +825,9 @@ class App(BaseTk):
             self.export_hint.config(text="")
             return
         s = self._settings("")
-        if s.fmt == "gif":
+        if s.audio_only:
+            self.export_hint.config(text="Audio only (MP3)")
+        elif s.fmt == "gif":
             self.export_hint.config(text=f"GIF · {s.gif_fps} fps (2-pass palette)")
         elif s.fmt == "webm":
             self.export_hint.config(text="WebM (VP9)")
@@ -1173,16 +1223,21 @@ class App(BaseTk):
             scale_cap=dict(SCALE_OPTIONS)[self.scale_var.get()],
             crf=self.crf_var.get(), fmt=dict(FORMATS)[self.fmt_var.get()],
             fast_trim=self.fast_trim_var.get(), hw=self.hw_var.get(),
-            gif_fps=self.gif_fps_var.get(), target_size_mb=self._target_mb())
+            gif_fps=self.gif_fps_var.get(), target_size_mb=self._target_mb(),
+            mute=self.mute_var.get(), volume=self.volume_var.get() / 100.0,
+            audio_only=self.audio_only_var.get())
 
     def export(self):
         if not self.input_path:
             return
         self.commit_times()
-        fmt = dict(FORMATS)[self.fmt_var.get()]
-        ext = {"mp4": ".mp4", "gif": ".gif", "webm": ".webm"}[fmt]
-        ftypes = {"mp4": [("MP4 video", "*.mp4")], "gif": [("GIF", "*.gif")],
-                  "webm": [("WebM video", "*.webm")]}[fmt]
+        if self.audio_only_var.get():
+            ext, ftypes = ".mp3", [("MP3 audio", "*.mp3")]
+        else:
+            fmt = dict(FORMATS)[self.fmt_var.get()]
+            ext = {"mp4": ".mp4", "gif": ".gif", "webm": ".webm"}[fmt]
+            ftypes = {"mp4": [("MP4 video", "*.mp4")], "gif": [("GIF", "*.gif")],
+                      "webm": [("WebM video", "*.webm")]}[fmt]
         base = os.path.splitext(os.path.basename(self.input_path))[0]
         out = filedialog.asksaveasfilename(
             title="Export as", defaultextension=ext,

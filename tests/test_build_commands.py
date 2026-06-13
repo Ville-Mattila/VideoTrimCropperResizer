@@ -95,3 +95,28 @@ def test_size_target_overrides_passthrough(leike):
     cmds = leike["build_commands"](make(leike, target_size_mb=5.0))
     assert len(cmds) == 2
     assert "-c copy" not in " ".join(cmds[0])
+
+
+def test_mute_drops_audio(leike):
+    cmds = leike["build_commands"](make(leike, crop=(0, 0, 1280, 720), mute=True))
+    j = " ".join(cmds[0])
+    assert "-an" in j and "aac" not in j
+
+
+def test_volume_filter(leike):
+    cmds = leike["build_commands"](make(leike, crop=(0, 0, 1280, 720), volume=1.5))
+    assert "volume=1.500" in " ".join(cmds[0])
+
+
+def test_mute_disables_passthrough(leike):
+    # mute on a trim-only job can't stream-copy; must re-encode with -an
+    cmds = leike["build_commands"](make(leike, mute=True))
+    j = " ".join(cmds[0])
+    assert "-c copy" not in j and "-an" in j
+
+
+def test_audio_only_mp3(leike):
+    cmds = leike["build_commands"](make(leike, audio_only=True, output_path="out.mp3"))
+    assert len(cmds) == 1
+    j = " ".join(cmds[0])
+    assert "-vn" in j and "libmp3lame" in j
