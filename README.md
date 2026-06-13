@@ -40,3 +40,22 @@ Source is a single file: `video_trim_crop.py` (Python 3 + tkinter).
 
 Drag-and-drop is provided by **tkinterdnd2**; without it the app still
 works via the *Open video…* button.
+
+## License
+
+The source code in this repository is licensed under the **MIT License**
+(see [`LICENSE`](LICENSE)) — fully free to use, modify, and redistribute.
+
+This app runs **ffmpeg** as a separate program; it does not link ffmpeg's
+libraries. The two are independent works:
+
+- **This project's code** — MIT.
+- **ffmpeg** — when bundled (the *portable* release), `ffmpeg.exe` is a
+  **GPLv3** build by [gyan.dev](https://www.gyan.dev/ffmpeg/builds/), © the
+  FFmpeg developers, redistributed with its license and source pointer. The
+  GPL applies to that binary only, not to this project's code.
+- Other bundled runtimes (Python, Tcl/Tk, tkinterdnd2, the PyInstaller
+  bootloader) are under permissive / exception licenses.
+
+Full attribution and license texts: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
+and [`licenses/`](licenses/).
