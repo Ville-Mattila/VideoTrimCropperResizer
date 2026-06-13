@@ -918,87 +918,156 @@ class App(BaseTk):
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self):
-        root = ttk.Frame(self, padding=10)
-        root.grid(row=0, column=0, sticky="nsew")
-        self.rowconfigure(0, weight=1)
+        self.configure(bg=BASE_BG)
+        self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
-        root.columnconfigure(0, weight=1)   # preview column grows
-        root.columnconfigure(1, weight=0)   # controls column fixed
+
+        # ---- Header bar ----
+        header = ttk.Frame(self, padding=(12, 8))
+        header.grid(row=0, column=0, sticky="ew")
+        header.columnconfigure(3, weight=1)
+        logo = tk.Canvas(header, width=16, height=16, bg=BASE_BG,
+                         highlightthickness=0)
+        logo.create_rectangle(0, 0, 16, 16, fill=GOLD, outline="")
+        logo.grid(row=0, column=0, padx=(0, 8))
+        ttk.Label(header, text="Leike", font=("Segoe UI", 12, "bold")).grid(
+            row=0, column=1)
+        ttk.Button(header, text="Open…", command=self.open_file).grid(
+            row=0, column=2, padx=(12, 0))
+        hint = "No file loaded — drag a video in or click Open…"
+        self.file_label = ttk.Label(header, text=hint, foreground=MUTED,
+                                    anchor="e")
+        self.file_label.grid(row=0, column=3, sticky="e")
+        ttk.Separator(self, orient="horizontal").grid(row=0, column=0,
+                                                      sticky="sew")
+
+        # ---- Body ----
+        root = ttk.Frame(self, padding=10)
+        root.grid(row=1, column=0, sticky="nsew")
+        root.columnconfigure(0, weight=1)
+        root.columnconfigure(1, weight=0)
         root.rowconfigure(0, weight=1)
 
-        # Left: preview canvas
+        # Left: preview + scrub + filmstrip + trim + grab
         left = ttk.Frame(root)
         left.grid(row=0, column=0, sticky="nsew")
         left.columnconfigure(0, weight=1)
-        left.rowconfigure(2, weight=1)      # canvas row grows
+        left.rowconfigure(0, weight=1)
 
-        ttk.Button(left, text="Open video...", command=self.open_file).grid(
-            row=0, column=0, sticky="w", pady=(0, 6)
-        )
-        hint = "No file loaded — drag a video in or click Open video…"
-        self.file_label = ttk.Label(left, text=hint, width=70)
-        self.file_label.grid(row=1, column=0, sticky="w")
-
-        self.canvas = tk.Canvas(
-            left, width=PREVIEW_MAX_W, height=PREVIEW_MAX_H,
-            bg=CANVAS_BG, highlightthickness=1,
-            highlightbackground=CANVAS_BORDER,
-        )
-        self.canvas.grid(row=2, column=0, sticky="nsew", pady=6)
+        self.canvas = tk.Canvas(left, width=PREVIEW_MAX_W, height=PREVIEW_MAX_H,
+                                bg=CANVAS_BG, highlightthickness=1,
+                                highlightbackground=CANVAS_BORDER)
+        self.canvas.grid(row=0, column=0, sticky="nsew")
         self.canvas.bind("<ButtonPress-1>", self.on_canvas_down)
         self.canvas.bind("<B1-Motion>", self.on_canvas_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_canvas_up)
         self.canvas.bind("<Configure>", self._on_canvas_resize)
         self._draw_drop_hint()
 
-        # Accept files dropped from Explorer onto the window / canvas.
-        if HAS_DND:
-            for widget in (self, self.canvas):
-                widget.drop_target_register(DND_FILES)
-                widget.dnd_bind("<<Drop>>", self.on_drop)
-
-        # Scrub slider (preview playhead)
         scrub = ttk.Frame(left)
-        scrub.grid(row=3, column=0, sticky="ew", pady=(2, 0))
+        scrub.grid(row=1, column=0, sticky="ew", pady=(6, 0))
         scrub.columnconfigure(1, weight=1)
         ttk.Label(scrub, text="Preview").grid(row=0, column=0, padx=(0, 6))
         self.scrub_var = tk.DoubleVar(value=0.0)
-        self.scrub = ttk.Scale(
-            scrub, from_=0, to=1, variable=self.scrub_var,
-            command=self.on_scrub, length=620,
-        )
+        self.scrub = ttk.Scale(scrub, from_=0, to=1, variable=self.scrub_var,
+                               command=self.on_scrub)
         self.scrub.grid(row=0, column=1, sticky="ew")
         self.playhead_label = ttk.Label(scrub, text="00:00.000", width=12)
         self.playhead_label.grid(row=0, column=2, padx=(6, 0))
 
         self.strip = tk.Canvas(left, height=52, bg=PANEL_BG,
                                highlightthickness=1, highlightbackground=BORDER)
-        self.strip.grid(row=4, column=0, sticky="ew", pady=(4, 0))
+        self.strip.grid(row=2, column=0, sticky="ew", pady=(4, 0))
         self.strip.bind("<Button-1>", self._strip_seek)
         self.strip.bind("<B1-Motion>", self._strip_seek)
         self.strip.bind("<Configure>", self._on_strip_resize)
 
+        self._build_trim_row(left, row=3)
         self.grab_btn = ttk.Button(left, text="Grab frame",
                                    command=self.grab_frame, state="disabled")
-        self.grab_btn.grid(row=5, column=0, sticky="w", pady=(4, 0))
+        self.grab_btn.grid(row=4, column=0, sticky="w", pady=(6, 0))
 
-        # Right: controls (scrollable, so a short window still reaches Export)
-        right = self._scrollable(root)
-        self._build_crop_panel(right)
-        self._build_trim_panel(right)
-        self._build_export_panel(right)
+        if HAS_DND:
+            for w in (self, self.canvas):
+                w.drop_target_register(DND_FILES)
+                w.dnd_bind("<<Drop>>", self.on_drop)
 
-        # "More options" expander — feature panels land in self.advanced later.
-        self.adv_shown = False
-        self.adv_btn = ttk.Button(right, text="More options  ▸",
-                                  command=self._toggle_adv)
-        self.adv_btn.grid(row=3, column=0, sticky="ew", pady=(8, 2))
-        self.advanced = ttk.Frame(right)
-        self._build_encoding_panel(self.advanced)
-        self._build_audio_panel(self.advanced)
-        self._build_transform_panel(self.advanced)
-        self._build_adjust_panel(self.advanced)
-        self._build_overlay_panel(self.advanced)
+        # Right: notebook + persistent footer
+        right = ttk.Frame(root)
+        right.grid(row=0, column=1, sticky="ns", padx=(12, 0))
+        right.rowconfigure(0, weight=1)
+        nb = ttk.Notebook(right, width=330)
+        nb.grid(row=0, column=0, sticky="nsew")
+        tab_crop = ttk.Frame(nb, padding=8)
+        tab_fx = ttk.Frame(nb, padding=8)
+        tab_overlay = ttk.Frame(nb, padding=8)
+        tab_audio = ttk.Frame(nb, padding=8)
+        tab_export = ttk.Frame(nb, padding=8)
+        for f in (tab_crop, tab_fx, tab_overlay, tab_audio, tab_export):
+            f.columnconfigure(0, weight=1)
+        nb.add(tab_crop, text="Crop")
+        nb.add(tab_fx, text="Effects")
+        nb.add(tab_overlay, text="Overlay")
+        nb.add(tab_audio, text="Audio")
+        nb.add(tab_export, text="Export")
+        self.notebook = nb
+
+        self._build_crop_panel(tab_crop)
+        self._build_transform_panel(tab_fx)
+        self._build_adjust_panel(tab_fx)
+        self._build_overlay_panel(tab_overlay)
+        self._build_audio_panel(tab_audio)
+        self._build_export_panel(tab_export)
+
+        self._build_footer(right, row=1)
+
+    def _build_trim_row(self, parent, row):
+        box = ttk.Frame(parent)
+        box.grid(row=row, column=0, sticky="ew", pady=(6, 0))
+        ttk.Label(box, text="TRIM", style="Section.TLabel").grid(
+            row=0, column=0, columnspan=6, sticky="w")
+        self.start_var = tk.StringVar(value="00:00.000")
+        e1 = ttk.Entry(box, textvariable=self.start_var, width=11)
+        e1.grid(row=1, column=0, padx=(0, 4), pady=(2, 0))
+        e1.bind("<Return>", lambda _e: self.commit_times())
+        e1.bind("<FocusOut>", lambda _e: self.commit_times())
+        ttk.Button(box, text="Set start",
+                   command=lambda: self.set_from_playhead("start")).grid(
+            row=1, column=1, pady=(2, 0))
+        ttk.Label(box, text="→").grid(row=1, column=2, padx=4)
+        self.end_var = tk.StringVar(value="00:00.000")
+        e2 = ttk.Entry(box, textvariable=self.end_var, width=11)
+        e2.grid(row=1, column=3, padx=(0, 4), pady=(2, 0))
+        e2.bind("<Return>", lambda _e: self.commit_times())
+        e2.bind("<FocusOut>", lambda _e: self.commit_times())
+        ttk.Button(box, text="Set end",
+                   command=lambda: self.set_from_playhead("end")).grid(
+            row=1, column=4, pady=(2, 0))
+        self.trim_label = ttk.Label(box, text="Duration: 0.000 s",
+                                    foreground=MUTED)
+        self.trim_label.grid(row=2, column=0, columnspan=6, sticky="w",
+                             pady=(3, 0))
+
+    def _build_footer(self, parent, row):
+        box = ttk.Frame(parent, padding=(0, 10, 0, 0))
+        box.grid(row=row, column=0, sticky="ew")
+        box.columnconfigure(0, weight=1)
+        self.export_btn = ttk.Button(box, text="⬇  Export video",
+                                     style="Accent.TButton",
+                                     command=self.export, state="disabled")
+        self.export_btn.grid(row=0, column=0, sticky="ew")
+        self.cancel_btn = ttk.Button(box, text="Cancel",
+                                     command=self.cancel_export, state="disabled")
+        self.cancel_btn.grid(row=0, column=1, padx=(6, 0))
+        self.export_hint = ttk.Label(box, text="", foreground=GOLD)
+        self.export_hint.grid(row=1, column=0, columnspan=2, sticky="w",
+                              pady=(6, 0))
+        self.progress = ttk.Progressbar(box, mode="determinate")
+        self.progress.grid(row=2, column=0, columnspan=2, sticky="ew",
+                           pady=(4, 0))
+        self.status_label = ttk.Label(box, text="", foreground=MUTED)
+        self.status_label.grid(row=3, column=0, columnspan=2, sticky="w",
+                               pady=(3, 0))
 
     def _build_crop_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Crop", padding=8)
@@ -1026,37 +1095,9 @@ class App(BaseTk):
             foreground="#666",
         ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
-    def _build_trim_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Trim", padding=8)
-        box.grid(row=1, column=0, sticky="ew", pady=(0, 10))
-
-        ttk.Label(box, text="Start").grid(row=0, column=0, sticky="w")
-        self.start_var = tk.StringVar(value="00:00.000")
-        e1 = ttk.Entry(box, textvariable=self.start_var, width=14)
-        e1.grid(row=0, column=1, padx=4)
-        e1.bind("<Return>", lambda _e: self.commit_times())
-        e1.bind("<FocusOut>", lambda _e: self.commit_times())
-        ttk.Button(box, text="Set from playhead",
-                   command=lambda: self.set_from_playhead("start")).grid(
-            row=0, column=2)
-
-        ttk.Label(box, text="End").grid(row=1, column=0, sticky="w", pady=(6, 0))
-        self.end_var = tk.StringVar(value="00:00.000")
-        e2 = ttk.Entry(box, textvariable=self.end_var, width=14)
-        e2.grid(row=1, column=1, padx=4, pady=(6, 0))
-        e2.bind("<Return>", lambda _e: self.commit_times())
-        e2.bind("<FocusOut>", lambda _e: self.commit_times())
-        ttk.Button(box, text="Set from playhead",
-                   command=lambda: self.set_from_playhead("end")).grid(
-            row=1, column=2, pady=(6, 0))
-
-        self.trim_label = ttk.Label(box, text="Duration: 0.000 s")
-        self.trim_label.grid(row=2, column=0, columnspan=3, sticky="w",
-                             pady=(6, 0))
-
     def _build_export_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Export", padding=8)
-        box.grid(row=2, column=0, sticky="ew")
+        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
 
         ttk.Label(box, text="Format").grid(row=0, column=0, sticky="w")
         self.fmt_var = tk.StringVar(value=FORMATS[0][0])
@@ -1099,27 +1140,12 @@ class App(BaseTk):
                     textvariable=self.gif_fps_var).grid(
             row=0, column=1, padx=(6, 0))
 
-        btns = ttk.Frame(box)
-        btns.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(4, 4))
-        btns.columnconfigure(0, weight=1)
-        self.export_btn = ttk.Button(btns, text="Export...",
-                                     command=self.export, state="disabled")
-        self.export_btn.grid(row=0, column=0, sticky="ew")
-        self.cancel_btn = ttk.Button(btns, text="Cancel",
-                                     command=self.cancel_export, state="disabled")
-        self.cancel_btn.grid(row=0, column=1, padx=(6, 0))
-
-        self.export_hint = ttk.Label(box, text="", foreground=GOLD)
-        self.export_hint.grid(row=7, column=0, columnspan=2, sticky="w")
-        self.progress = ttk.Progressbar(box, length=240, mode="determinate")
-        self.progress.grid(row=8, column=0, columnspan=2, sticky="ew")
-        self.status_label = ttk.Label(box, text="")
-        self.status_label.grid(row=9, column=0, columnspan=2, sticky="w",
-                               pady=(4, 0))
+        # Encoding options (fast-trim / GPU / target size) share this tab.
+        self._build_encoding_panel(parent)
 
     def _build_encoding_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Encoding", padding=8)
-        box.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        box.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         self.fast_trim_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(
             box, text="Fast trim when possible (lossless, no re-encode)",
@@ -1175,7 +1201,7 @@ class App(BaseTk):
 
     def _build_audio_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Audio", padding=8)
-        box.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         self.mute_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(box, text="Mute (remove audio)", variable=self.mute_var,
                         command=self._update_export_hint).grid(
@@ -1200,7 +1226,7 @@ class App(BaseTk):
 
     def _build_transform_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Transform", padding=8)
-        box.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         hint = self._update_export_hint
 
         self.rotate_val = 0
@@ -1269,7 +1295,7 @@ class App(BaseTk):
 
     def _build_adjust_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Adjust", padding=8)
-        box.grid(row=3, column=0, sticky="ew", pady=(0, 10))
+        box.grid(row=1, column=0, sticky="ew", pady=(0, 8))
 
         def slider(row, label, var, frm, to, suffix):
             ttk.Label(box, text=label).grid(row=row, column=0, sticky="w")
@@ -1307,7 +1333,7 @@ class App(BaseTk):
 
     def _build_overlay_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Overlay", padding=8)
-        box.grid(row=4, column=0, sticky="ew", pady=(0, 10))
+        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         self.watermark_path = None
         self.subtitles_path = None
 
