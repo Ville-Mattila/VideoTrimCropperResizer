@@ -1,6 +1,11 @@
 def test_tabs_and_widgets(app):
-    tabs = [app.notebook.tab(i, "text") for i in app.notebook.tabs()]
-    assert tabs == ["Crop", "Effects", "Overlay", "Audio", "Export"]
+    assert list(app._tabs.keys()) == ["Crop", "Effects", "Overlay", "Audio",
+                                      "Export"]
+    # the flat tab bar has a clickable cell (label + indicator) per tab
+    assert list(app._tab_cells.keys()) == list(app._tabs.keys())
+    # selecting a tab raises its content and marks it active
+    app._select_tab("Export")
+    assert app._active_tab == "Export"
     # every variable _settings() reads must still exist after the re-home
     for name in ("scale_var", "crf_var", "fmt_var", "fast_trim_var",
                  "hw_var", "gif_fps_var", "size_var", "mute_var",

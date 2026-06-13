@@ -779,12 +779,12 @@ class App(BaseTk):
                   bordercolor=[("focus", GOLD)])
 
         style.configure("TEntry", fieldbackground=PANEL_BG, foreground=TEXT,
-                        bordercolor=BORDER, insertcolor=TEXT)
+                        bordercolor=BORDER, insertcolor=TEXT, padding=4)
         style.map("TEntry", bordercolor=[("focus", GOLD)])
 
         style.configure("TCombobox", fieldbackground=PANEL_BG, foreground=TEXT,
                         background=PANEL_BG, bordercolor=BORDER,
-                        arrowcolor=GOLD)
+                        arrowcolor=GOLD, padding=4)
         style.map("TCombobox", fieldbackground=[("readonly", PANEL_BG)],
                   bordercolor=[("focus", GOLD)],
                   arrowcolor=[("active", GOLD_LIGHT)])
@@ -794,22 +794,32 @@ class App(BaseTk):
         self.option_add("*TCombobox*Listbox.selectBackground", GOLD)
         self.option_add("*TCombobox*Listbox.selectForeground", BASE_BG)
 
+        style.configure("TSpinbox", fieldbackground=PANEL_BG, foreground=TEXT,
+                        background=PANEL_BG, bordercolor=BORDER,
+                        arrowcolor=GOLD, padding=4)
+        style.map("TSpinbox", bordercolor=[("focus", GOLD)],
+                  arrowcolor=[("active", GOLD_LIGHT)])
+
+        # Checkbutton: keep the row on the window colour at all times (clam's
+        # default flips it to a light grey on hover, which kills contrast).
+        style.configure("TCheckbutton", background=BASE_BG, foreground=TEXT,
+                        indicatorbackground=PANEL_BG, indicatorforeground=BASE_BG,
+                        bordercolor=BORDER, focuscolor=BASE_BG, padding=4)
+        style.map("TCheckbutton",
+                  background=[("active", BASE_BG), ("selected", BASE_BG)],
+                  foreground=[("disabled", DISABLED), ("active", GOLD)],
+                  indicatorbackground=[("selected", GOLD),
+                                       ("active", PANEL_HI),
+                                       ("pressed", PANEL_HI)],
+                  indicatorforeground=[("selected", BASE_BG)])
+
         # Slider: gold grip on a dark groove.
         style.configure("Horizontal.TScale", background=GOLD,
                         troughcolor=PANEL_BG, bordercolor=BORDER)
         # Progress bar: gold fill.
         style.configure("Horizontal.TProgressbar", background=GOLD,
                         troughcolor=PANEL_BG, bordercolor=BORDER)
-        # Notebook (tabs): selected tab merges with the content, gold text.
-        style.configure("TNotebook", background=BASE_BG, borderwidth=0,
-                        tabmargins=[0, 4, 0, 0])
-        style.configure("TNotebook.Tab", background=PANEL_BG, foreground=MUTED,
-                        padding=(16, 8), borderwidth=0,
-                        font=("Segoe UI", 10))
-        style.map("TNotebook.Tab",
-                  background=[("selected", BASE_BG), ("active", PANEL_HI)],
-                  foreground=[("selected", GOLD), ("active", TEXT)],
-                  font=[("selected", ("Segoe UI", 10, "bold"))])
+        # Tabs are a hand-built flat bar (see _build_ui) — no ttk.Notebook style.
         # Primary (accent) button: gold + dark bold text; disabled goes dark.
         style.configure("Accent.TButton", background=GOLD, foreground=BASE_BG,
                         bordercolor=GOLD_DEEP, relief="flat", padding=9,
@@ -890,24 +900,16 @@ class App(BaseTk):
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
 
-        # ---- Header bar ----
+        # ---- Header bar (functional: Open + current file) ----
         header = ttk.Frame(self, padding=(12, 8))
         header.grid(row=0, column=0, sticky="ew")
-        header.columnconfigure(3, weight=1)
-        logo = tk.Canvas(header, width=16, height=16, bg=BASE_BG,
-                         highlightthickness=0)
-        logo.create_rectangle(0, 0, 16, 16, fill=GOLD, outline="")
-        logo.grid(row=0, column=0, padx=(0, 8))
-        ttk.Label(header, text="Leike", font=("Segoe UI", 12, "bold")).grid(
-            row=0, column=1)
+        header.columnconfigure(1, weight=1)
         ttk.Button(header, text="Open…", command=self.open_file).grid(
-            row=0, column=2, padx=(12, 0))
+            row=0, column=0, sticky="w")
         hint = "No file loaded — drag a video in or click Open…"
         self.file_label = ttk.Label(header, text=hint, foreground=MUTED,
                                     anchor="e")
-        self.file_label.grid(row=0, column=3, sticky="e")
-        ttk.Separator(self, orient="horizontal").grid(row=0, column=0,
-                                                      sticky="sew")
+        self.file_label.grid(row=0, column=1, sticky="e")
 
         # ---- Body ----
         root = ttk.Frame(self, padding=10)
@@ -960,34 +962,75 @@ class App(BaseTk):
                 w.drop_target_register(DND_FILES)
                 w.dnd_bind("<<Drop>>", self.on_drop)
 
-        # Right: notebook + persistent footer
+        # Right: custom flat tab bar + content + persistent footer
         right = ttk.Frame(root)
         right.grid(row=0, column=1, sticky="ns", padx=(12, 0))
-        right.rowconfigure(0, weight=1)
-        nb = ttk.Notebook(right, width=330)
-        nb.grid(row=0, column=0, sticky="nsew")
-        tab_crop = ttk.Frame(nb, padding=8)
-        tab_fx = ttk.Frame(nb, padding=8)
-        tab_overlay = ttk.Frame(nb, padding=8)
-        tab_audio = ttk.Frame(nb, padding=8)
-        tab_export = ttk.Frame(nb, padding=8)
-        for f in (tab_crop, tab_fx, tab_overlay, tab_audio, tab_export):
+        right.columnconfigure(0, weight=1)
+        right.rowconfigure(1, weight=1)
+
+        tab_names = ["Crop", "Effects", "Overlay", "Audio", "Export"]
+
+        # --- Flat tab bar: evenly-spaced cells with a gold underline indicator
+        tabbar = tk.Frame(right, bg=BASE_BG)
+        tabbar.grid(row=0, column=0, sticky="ew")
+        self._tab_cells = {}
+        self._tabs = {}
+        self._active_tab = None
+        for i, name in enumerate(tab_names):
+            tabbar.columnconfigure(i, weight=1, uniform="tab")
+            cell = tk.Frame(tabbar, bg=BASE_BG)
+            cell.grid(row=0, column=i, sticky="nsew")
+            lbl = tk.Label(cell, text=name, bg=BASE_BG, fg=MUTED,
+                           font=("Segoe UI", 10), pady=8, cursor="hand2")
+            lbl.pack(fill="x")
+            ind = tk.Frame(cell, bg=BORDER, height=2)
+            ind.pack(fill="x")
+            for w in (cell, lbl):
+                w.bind("<Button-1>", lambda _e, n=name: self._select_tab(n))
+                w.bind("<Enter>", lambda _e, n=name: self._tab_hover(n, True))
+                w.bind("<Leave>", lambda _e, n=name: self._tab_hover(n, False))
+            self._tab_cells[name] = {"label": lbl, "indicator": ind}
+
+        # --- Content area: one padded frame per tab, stacked; active is raised
+        content = tk.Frame(right, bg=BASE_BG, width=330, height=420)
+        content.grid(row=1, column=0, sticky="nsew", pady=(10, 0))
+        content.grid_propagate(False)
+        content.rowconfigure(0, weight=1)
+        content.columnconfigure(0, weight=1)
+        for name in tab_names:
+            f = ttk.Frame(content, padding=(10, 8))
+            f.grid(row=0, column=0, sticky="nsew")
             f.columnconfigure(0, weight=1)
-        nb.add(tab_crop, text="Crop")
-        nb.add(tab_fx, text="Effects")
-        nb.add(tab_overlay, text="Overlay")
-        nb.add(tab_audio, text="Audio")
-        nb.add(tab_export, text="Export")
-        self.notebook = nb
+            self._tabs[name] = f
 
-        self._build_crop_panel(tab_crop)
-        self._build_transform_panel(tab_fx)
-        self._build_adjust_panel(tab_fx)
-        self._build_overlay_panel(tab_overlay)
-        self._build_audio_panel(tab_audio)
-        self._build_export_panel(tab_export)
+        self._build_crop_panel(self._tabs["Crop"])
+        self._build_transform_panel(self._tabs["Effects"])
+        self._build_adjust_panel(self._tabs["Effects"])
+        self._build_overlay_panel(self._tabs["Overlay"])
+        self._build_audio_panel(self._tabs["Audio"])
+        self._build_export_panel(self._tabs["Export"])
 
-        self._build_footer(right, row=1)
+        self._build_footer(right, row=2)
+        self._select_tab("Crop")
+
+    def _select_tab(self, name):
+        """Show the named tab's content and restyle the tab bar."""
+        self._active_tab = name
+        for n, cell in self._tab_cells.items():
+            active = (n == name)
+            cell["label"].configure(
+                fg=(GOLD if active else MUTED),
+                font=("Segoe UI", 10, "bold") if active
+                else ("Segoe UI", 10))
+            cell["indicator"].configure(bg=(GOLD if active else BORDER))
+        self._tabs[name].tkraise()
+
+    def _tab_hover(self, name, entering):
+        """Brighten an inactive tab's label on hover."""
+        if name == self._active_tab:
+            return
+        self._tab_cells[name]["label"].configure(
+            fg=(TEXT if entering else MUTED))
 
     def _build_trim_row(self, parent, row):
         box = ttk.Frame(parent)
@@ -1047,7 +1090,7 @@ class App(BaseTk):
             box, textvariable=self.aspect_var, state="readonly",
             values=[a[0] for a in ASPECTS], width=22,
         )
-        aspect_cb.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        aspect_cb.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(2, 12))
         aspect_cb.bind("<<ComboboxSelected>>", self.on_aspect_change)
 
         self.crop_label = ttk.Label(box, text="Crop: full frame")
@@ -1055,13 +1098,13 @@ class App(BaseTk):
 
         ttk.Button(box, text="Reset to full frame",
                    command=self.reset_crop).grid(
-            row=3, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+            row=3, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
         ttk.Label(
             box, text="Drag on the preview to draw a crop box.\n"
                       "Drag inside to move, corners to resize.",
-            foreground=MUTED,
-        ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(6, 0))
+            foreground=MUTED, justify="left",
+        ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(12, 0))
 
     def _build_export_panel(self, parent):
         box = ttk.Frame(parent, padding=2)
@@ -1073,7 +1116,7 @@ class App(BaseTk):
             box, textvariable=self.fmt_var, state="readonly",
             values=[f[0] for f in FORMATS], width=22,
         )
-        fmt_cb.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        fmt_cb.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(2, 12))
         fmt_cb.bind("<<ComboboxSelected>>", lambda _e: self._on_format_change())
 
         ttk.Label(box, text="Downscale").grid(row=2, column=0, sticky="w")
@@ -1082,7 +1125,7 @@ class App(BaseTk):
             box, textvariable=self.scale_var, state="readonly",
             values=[s[0] for s in SCALE_OPTIONS], width=22,
         )
-        scale_cb.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        scale_cb.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(2, 12))
         scale_cb.bind("<<ComboboxSelected>>",
                       lambda _e: self._update_export_hint())
 
@@ -1112,25 +1155,26 @@ class App(BaseTk):
         self._build_encoding_panel(parent)
 
     def _build_encoding_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Encoding", padding=8)
-        box.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        box = ttk.LabelFrame(parent, text="Encoding", padding=10)
+        box.grid(row=1, column=0, sticky="ew", pady=(14, 0))
         self.fast_trim_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(
             box, text="Fast trim when possible (lossless, no re-encode)",
             variable=self.fast_trim_var,
             command=self._update_export_hint).grid(row=0, column=0, sticky="w")
-        self.hw_var = tk.BooleanVar(value=False)
+        # Default ON when a GPU is available; stays off (and disabled) otherwise.
+        self.hw_var = tk.BooleanVar(value=self.has_nvenc)
         self.hw_chk = ttk.Checkbutton(
             box, text="Fast encode (GPU / NVENC)", variable=self.hw_var,
             command=self._update_export_hint)
-        self.hw_chk.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.hw_chk.grid(row=1, column=0, sticky="w", pady=(2, 0))
         if not self.has_nvenc:
             self.hw_chk.config(state="disabled")
             ttk.Label(box, text="(no NVENC GPU detected)",
                       foreground=MUTED).grid(row=2, column=0, sticky="w")
 
         size_box = ttk.Frame(box)
-        size_box.grid(row=3, column=0, sticky="w", pady=(8, 0))
+        size_box.grid(row=3, column=0, sticky="w", pady=(10, 0))
         ttk.Label(size_box, text="Target file size (MP4)").grid(
             row=0, column=0, columnspan=3, sticky="w")
         self.size_var = tk.StringVar(value=SIZE_TARGETS[0][0])
@@ -1175,10 +1219,10 @@ class App(BaseTk):
                         command=self._update_export_hint).grid(
             row=0, column=0, columnspan=2, sticky="w")
         ttk.Label(box, text="Volume").grid(row=1, column=0, sticky="w",
-                                           pady=(4, 0))
+                                           pady=(10, 0))
         self.volume_var = tk.IntVar(value=100)
         vrow = ttk.Frame(box)
-        vrow.grid(row=2, column=0, columnspan=2, sticky="ew")
+        vrow.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(2, 0))
         ttk.Scale(vrow, from_=0, to=200, variable=self.volume_var,
                   command=self._on_volume, length=150).grid(row=0, column=0)
         self.volume_label = ttk.Label(vrow, text="100%", width=5)
@@ -1187,14 +1231,15 @@ class App(BaseTk):
         ttk.Checkbutton(box, text="Export audio only (MP3)",
                         variable=self.audio_only_var,
                         command=self._update_export_hint).grid(
-            row=3, column=0, columnspan=2, sticky="w", pady=(4, 0))
+            row=3, column=0, columnspan=2, sticky="w", pady=(10, 0))
 
     def _on_volume(self, _v):
         self.volume_label.config(text=f"{self.volume_var.get()}%")
 
     def _build_transform_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Transform", padding=8)
-        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        box = ttk.LabelFrame(parent, text="Transform", padding=10)
+        box.grid(row=0, column=0, sticky="ew", pady=(0, 14))
+        box.columnconfigure(1, weight=1)
         hint = self._update_export_hint
 
         self.rotate_val = 0
@@ -1215,15 +1260,15 @@ class App(BaseTk):
                         command=hint).grid(row=0, column=4, padx=(6, 0))
 
         ttk.Label(box, text="Speed").grid(row=1, column=0, sticky="w",
-                                          pady=(6, 0))
+                                          pady=(10, 0))
         self.speed_var = tk.StringVar(value="1×")
         sc = ttk.Combobox(box, textvariable=self.speed_var, state="readonly",
                           width=8, values=[s[0] for s in SPEEDS])
-        sc.grid(row=1, column=1, sticky="w", pady=(6, 0))
+        sc.grid(row=1, column=1, sticky="w", pady=(10, 0))
         sc.bind("<<ComboboxSelected>>", lambda _e: hint())
 
         frow = ttk.Frame(box)
-        frow.grid(row=2, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        frow.grid(row=2, column=0, columnspan=2, sticky="w", pady=(10, 0))
         ttk.Label(frow, text="Fade in").grid(row=0, column=0)
         self.fade_in_var = tk.StringVar(value="0")
         ttk.Entry(frow, textvariable=self.fade_in_var, width=4).grid(
@@ -1235,26 +1280,26 @@ class App(BaseTk):
         ttk.Label(frow, text="sec").grid(row=0, column=4)
 
         ttk.Label(box, text="Aspect fill").grid(row=3, column=0, sticky="w",
-                                                pady=(6, 0))
+                                                pady=(10, 0))
         self.fill_var = tk.StringVar(value=FILL_MODES[0][0])
         fc = ttk.Combobox(box, textvariable=self.fill_var, state="readonly",
                           width=18, values=[f[0] for f in FILL_MODES])
-        fc.grid(row=3, column=1, sticky="w", pady=(6, 0))
+        fc.grid(row=3, column=1, sticky="w", pady=(10, 0))
         fc.bind("<<ComboboxSelected>>", lambda _e: hint())
 
         ttk.Label(box, text="Effect").grid(row=4, column=0, sticky="w",
-                                           pady=(6, 0))
+                                           pady=(10, 0))
         self.effect_var = tk.StringVar(value="None")
         ec = ttk.Combobox(box, textvariable=self.effect_var, state="readonly",
                           width=10, values=["None", "Reverse", "Boomerang"])
-        ec.grid(row=4, column=1, sticky="w", pady=(6, 0))
+        ec.grid(row=4, column=1, sticky="w", pady=(10, 0))
         ec.bind("<<ComboboxSelected>>", lambda _e: hint())
 
         ttk.Label(box, text="Loop ×").grid(row=5, column=0, sticky="w",
-                                           pady=(6, 0))
+                                           pady=(10, 0))
         self.loop_var = tk.IntVar(value=1)
         ttk.Spinbox(box, from_=1, to=10, width=4, textvariable=self.loop_var,
-                    command=hint).grid(row=5, column=1, sticky="w", pady=(6, 0))
+                    command=hint).grid(row=5, column=1, sticky="w", pady=(10, 0))
 
     def _rotate(self, delta):
         self.rotate_val = (self.rotate_val + delta) % 360
@@ -1262,17 +1307,19 @@ class App(BaseTk):
         self._update_export_hint()
 
     def _build_adjust_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Adjust", padding=8)
-        box.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        box = ttk.LabelFrame(parent, text="Adjust", padding=10)
+        box.grid(row=1, column=0, sticky="ew", pady=(0, 14))
+        box.columnconfigure(1, weight=1)
 
         def slider(row, label, var, frm, to, suffix):
-            ttk.Label(box, text=label).grid(row=row, column=0, sticky="w")
+            ttk.Label(box, text=label).grid(row=row, column=0, sticky="w",
+                                            pady=(0, 8))
             lbl = ttk.Label(box, text=f"{var.get()}{suffix}", width=5)
-            ttk.Scale(box, from_=frm, to=to, variable=var, length=130,
+            ttk.Scale(box, from_=frm, to=to, variable=var, length=150,
                       command=lambda _v: lbl.config(
-                          text=f"{var.get()}{suffix}")).grid(row=row, column=1,
-                                                             sticky="w")
-            lbl.grid(row=row, column=2, padx=(4, 0))
+                          text=f"{var.get()}{suffix}")).grid(
+                row=row, column=1, sticky="ew", padx=(8, 0), pady=(0, 8))
+            lbl.grid(row=row, column=2, padx=(6, 0), pady=(0, 8))
 
         self.bright_var = tk.IntVar(value=0)
         slider(0, "Brightness", self.bright_var, -100, 100, "")
@@ -1284,7 +1331,7 @@ class App(BaseTk):
         self.gray_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(box, text="Grayscale", variable=self.gray_var,
                         command=self._update_export_hint).grid(
-            row=3, column=0, columnspan=2, sticky="w", pady=(4, 0))
+            row=3, column=0, columnspan=3, sticky="w", pady=(6, 0))
         self.denoise_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(box, text="Denoise", variable=self.denoise_var,
                         command=self._update_export_hint).grid(
@@ -1297,7 +1344,7 @@ class App(BaseTk):
         ttk.Checkbutton(box, text="Stabilize (deshake · 2-pass · MP4)",
                         variable=self.stabilize_var,
                         command=self._update_export_hint).grid(
-            row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
+            row=5, column=0, columnspan=3, sticky="w", pady=(6, 0))
 
     def _build_overlay_panel(self, parent):
         box = ttk.Frame(parent, padding=2)
@@ -1305,20 +1352,21 @@ class App(BaseTk):
         self.watermark_path = None
         self.subtitles_path = None
 
+        box.columnconfigure(1, weight=1)
         ttk.Label(box, text="Text").grid(row=0, column=0, sticky="w")
         self.text_var = tk.StringVar(value="")
         te = ttk.Entry(box, textvariable=self.text_var, width=18)
-        te.grid(row=0, column=1, columnspan=2, sticky="ew")
+        te.grid(row=0, column=1, columnspan=2, sticky="ew", padx=(8, 0))
         te.bind("<KeyRelease>", lambda _e: self._update_export_hint())
         self.text_pos_var = tk.StringVar(value="bottom")
         ttk.Combobox(box, textvariable=self.text_pos_var, state="readonly",
                      width=8, values=["top", "bottom"]).grid(
-            row=1, column=1, sticky="w", pady=(0, 4))
+            row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 14))
 
         ttk.Button(box, text="Watermark…",
                    command=self._pick_watermark).grid(row=2, column=0, sticky="w")
         self.wm_label = ttk.Label(box, text="none", foreground=MUTED, width=16)
-        self.wm_label.grid(row=2, column=1, sticky="w")
+        self.wm_label.grid(row=2, column=1, sticky="w", padx=(8, 0))
         self.wm_pos_var = tk.StringVar(value="br")
         ttk.Combobox(box, textvariable=self.wm_pos_var, state="readonly", width=5,
                      values=["tl", "tr", "bl", "br"]).grid(row=2, column=2,
@@ -1326,11 +1374,12 @@ class App(BaseTk):
 
         ttk.Button(box, text="Subtitles…",
                    command=self._pick_subtitles).grid(row=3, column=0, sticky="w",
-                                                      pady=(4, 0))
+                                                      pady=(10, 0))
         self.sub_label = ttk.Label(box, text="none", foreground=MUTED, width=16)
-        self.sub_label.grid(row=3, column=1, sticky="w", pady=(4, 0))
+        self.sub_label.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
         ttk.Button(box, text="Clear", width=6,
-                   command=self._clear_overlays).grid(row=3, column=2, pady=(4, 0))
+                   command=self._clear_overlays).grid(row=3, column=2,
+                                                      pady=(10, 0))
 
     def _pick_watermark(self):
         p = filedialog.askopenfilename(
