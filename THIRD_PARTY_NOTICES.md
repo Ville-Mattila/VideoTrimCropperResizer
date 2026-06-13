@@ -12,7 +12,7 @@ process). It does **not** link against ffmpeg's libraries. Under the GPL, this
 is *mere aggregation*: bundling an independent GPL program alongside MIT code
 does not place the MIT code under the GPL. The two remain separately licensed.
 
-- **`VideoTrimCropResize.exe` (standalone, 11 MB)** contains only the MIT app
+- **`Leike.exe` (standalone, 12 MB)** contains only the MIT app
   code plus permissively-licensed runtimes (Python, Tcl/Tk, tkinterdnd2) and
   the PyInstaller bootloader (GPL **with an exception** that permits any-license
   apps). It contains **no GPL-covered code**.

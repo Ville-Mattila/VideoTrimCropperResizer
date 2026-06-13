@@ -23,7 +23,7 @@ SOFTWARE.
 ---
 
 NOTE: This MIT license covers ONLY the source code in this repository
-(video_trim_crop.py and the accompanying scripts).
+(leike.py and the accompanying scripts).
 
 It does NOT cover third-party programs that may be distributed alongside the
 app, most notably the bundled ffmpeg.exe in the "portable" release, which is

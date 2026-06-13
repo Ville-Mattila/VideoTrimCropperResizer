@@ -1,11 +1,11 @@
-; Inno Setup script for Video Trim / Crop / Resize.
+; Inno Setup script for Leike.
 ; Build with Build-installer.bat (which populates the staging\ folder first).
 
-#define MyAppName "Video Trim Crop Resize"
-#define MyAppVersion "1.2"
+#define MyAppName "Leike"
+#define MyAppVersion "1.3"
 #define MyAppPublisher "Ville Mattila"
-#define MyAppURL "https://github.com/Ville-Mattila/VideoTrimCropperResizer"
-#define MyAppExeName "VideoTrimCropResize.exe"
+#define MyAppURL "https://github.com/Ville-Mattila/Leike"
+#define MyAppExeName "Leike.exe"
 
 [Setup]
 ; A unique, stable AppId so upgrades/uninstall are tracked correctly.
@@ -15,14 +15,14 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
-DefaultDirName={autopf}\VideoTrimCropResize
+DefaultDirName={autopf}\Leike
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 ; Per-user install: no admin/UAC prompt needed.
 PrivilegesRequired=lowest
 LicenseFile=..\LICENSE
 OutputDir=..\dist
-OutputBaseFilename=VideoTrimCropResize-Setup
+OutputBaseFilename=Leike-Setup
 Compression=lzma2/max
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
@@ -37,7 +37,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "staging\VideoTrimCropResize.exe";   DestDir: "{app}"; Flags: ignoreversion
+Source: "staging\Leike.exe";                 DestDir: "{app}"; Flags: ignoreversion
 Source: "staging\ffmpeg.exe";                DestDir: "{app}"; Flags: ignoreversion
 Source: "staging\LICENSE.txt";               DestDir: "{app}"; Flags: ignoreversion
 Source: "staging\THIRD_PARTY_NOTICES.txt";   DestDir: "{app}"; Flags: ignoreversion

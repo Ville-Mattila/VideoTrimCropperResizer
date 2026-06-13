@@ -1,10 +1,10 @@
 @echo off
-REM Builds dist\VideoTrimCropResize-Setup.exe with Inno Setup.
-REM Requires: dist\VideoTrimCropResize.exe (run Build-exe.bat first),
+REM Builds dist\Leike-Setup.exe with Inno Setup.
+REM Requires: dist\Leike.exe (run Build-exe.bat first),
 REM           ffmpeg.exe on PATH, and Inno Setup 6 installed.
 cd /d "%~dp0"
 
-if not exist "dist\VideoTrimCropResize.exe" (
+if not exist "dist\Leike.exe" (
   echo [!] Build the app first: run Build-exe.bat
   exit /b 1
 )
@@ -20,7 +20,7 @@ REM Assemble the staging folder from tracked sources + the built exe.
 set "STAGE=installer\staging"
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
 mkdir "%STAGE%\licenses"
-copy /y "dist\VideoTrimCropResize.exe" "%STAGE%\" >nul
+copy /y "dist\Leike.exe" "%STAGE%\" >nul
 copy /y "%FFMPEG%" "%STAGE%\ffmpeg.exe" >nul
 copy /y "LICENSE" "%STAGE%\LICENSE.txt" >nul
 copy /y "THIRD_PARTY_NOTICES.md" "%STAGE%\THIRD_PARTY_NOTICES.txt" >nul
@@ -35,6 +35,6 @@ if not defined ISCC (
   exit /b 1
 )
 
-"%ISCC%" "installer\VideoTrimCropResize.iss"
+"%ISCC%" "installer\Leike.iss"
 echo.
-echo Done. Installer is dist\VideoTrimCropResize-Setup.exe
+echo Done. Installer is dist\Leike-Setup.exe

@@ -1,11 +1,11 @@
 @echo off
-REM Rebuilds dist\VideoTrimCropResize.exe from video_trim_crop.py
+REM Rebuilds dist\Leike.exe from leike.py
 cd /d "%~dp0"
 python -m PyInstaller --noconfirm --onefile --windowed ^
-  --name VideoTrimCropResize ^
+  --name Leike ^
   --collect-all tkinterdnd2 ^
   --collect-all sv_ttk ^
-  video_trim_crop.py
+  leike.py
 echo.
 echo Done. The exe is in the "dist" folder.
 pause

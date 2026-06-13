@@ -1,5 +1,5 @@
 """
-Video Trim / Crop / Resize - a simple native Windows UI for ffmpeg.
+Leike - a simple native Windows UI for ffmpeg.
 
 Open a video, drag a crop rectangle, set trim start/end, and export an
 H.264 .mp4 in a widely compatible format.
@@ -134,7 +134,7 @@ def even(n):
 class App(BaseTk):
     def __init__(self):
         super().__init__()
-        self.title("Video Trim / Crop / Resize")
+        self.title("Leike")
         self.resizable(False, False)
 
         # --- source video state ---

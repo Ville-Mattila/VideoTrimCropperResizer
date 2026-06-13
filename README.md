@@ -1,19 +1,18 @@
-# VIDEOTRIMMERCROPPERRESIZER
+# Leike
 
-A fully standalone version and a version for previous FFMPEG owners
-
-A small Windows app for ffmpeg. **Drag in a video, crop it, trim its
-length, and export it as a widely compatible H.264 `.mp4`.**
+**Leike** (Finnish for *a clip*) — a small, quick Windows app for ffmpeg.
+**Drag in a video, crop it, trim its length, and export it as a widely
+compatible H.264 `.mp4`.**
 
 ## The app
 
-Easiest: download **`VideoTrimCropResize-Setup.exe`** from the
-[Releases page](https://github.com/Ville-Mattila/VideoTrimCropperResizer/releases)
+Easiest: download **`Leike-Setup.exe`** from the
+[Releases page](https://github.com/Ville-Mattila/Leike/releases)
 and run it. It installs the app and ffmpeg together, adds a Start Menu
 shortcut, and registers an uninstaller (per-user — no admin prompt).
 
 Prefer no install? The portable zip and the standalone
-**`dist\VideoTrimCropResize.exe`** also work — just double-click.
+**`dist\Leike.exe`** also work — just double-click.
 
 > It uses **ffmpeg** for the actual work, found on your PATH (or placed
 > next to the .exe). ffmpeg/ffprobe are already on this machine. To run the
@@ -40,9 +39,9 @@ Crop offsets/dimensions are snapped to even numbers as H.264 requires.
 
 ## Developing / rebuilding
 
-Source is a single file: `video_trim_crop.py` (Python 3 + tkinter).
+Source is a single file: `leike.py` (Python 3 + tkinter).
 
-- Run from source: `python video_trim_crop.py` (or `Run.bat`)
+- Run from source: `python leike.py` (or `Run.bat`)
 - Rebuild the exe: `Build-exe.bat`
   (needs `pip install tkinterdnd2 sv-ttk pyinstaller`)
 

@@ -2,7 +2,7 @@
 build/
 dist/
 portable/
-/VideoTrimCropResize/
+/Leike/
 installer/staging/
 __pycache__/
 *.pyc

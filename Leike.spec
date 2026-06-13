@@ -11,7 +11,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['video_trim_crop.py'],
+    ['leike.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,
@@ -31,7 +31,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='VideoTrimCropResize',
+    name='Leike',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
