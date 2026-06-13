@@ -315,6 +315,43 @@ class App(BaseTk):
         self._resize_after = self.after(
             150, lambda: self.request_preview(self.playhead))
 
+    def _scrollable(self, parent):
+        """A vertically scrollable container for the controls column."""
+        outer = ttk.Frame(parent)
+        outer.grid(row=0, column=1, sticky="ns", padx=(14, 0))
+        outer.rowconfigure(0, weight=1)
+        cv = tk.Canvas(outer, bg=BASE_BG, highlightthickness=0,
+                       width=320, height=560)
+        sb = ttk.Scrollbar(outer, orient="vertical", command=cv.yview)
+        inner = ttk.Frame(cv)
+        win = cv.create_window((0, 0), window=inner, anchor="nw")
+
+        def _conf(_e=None):
+            cv.configure(scrollregion=cv.bbox("all"))
+            cv.itemconfigure(win, width=cv.winfo_width())
+
+        inner.bind("<Configure>", _conf)
+        cv.bind("<Configure>", _conf)
+        cv.configure(yscrollcommand=sb.set)
+        cv.grid(row=0, column=0, sticky="ns")
+        sb.grid(row=0, column=1, sticky="ns")
+
+        def _wheel(e):
+            cv.yview_scroll(int(-e.delta / 120), "units")
+
+        cv.bind("<Enter>", lambda e: cv.bind_all("<MouseWheel>", _wheel))
+        cv.bind("<Leave>", lambda e: cv.unbind_all("<MouseWheel>"))
+        return inner
+
+    def _toggle_adv(self):
+        if self.adv_shown:
+            self.advanced.grid_remove()
+            self.adv_btn.config(text="More options  ▸")
+        else:
+            self.advanced.grid(row=4, column=0, sticky="ew", pady=(0, 4))
+            self.adv_btn.config(text="More options  ▾")
+        self.adv_shown = not self.adv_shown
+
     # ------------------------------------------------------------------ UI
     def _build_ui(self):
         root = ttk.Frame(self, padding=10)
@@ -370,13 +407,18 @@ class App(BaseTk):
         self.playhead_label = ttk.Label(scrub, text="00:00.000", width=12)
         self.playhead_label.grid(row=0, column=2, padx=(6, 0))
 
-        # Right: controls
-        right = ttk.Frame(root)
-        right.grid(row=0, column=1, sticky="n", padx=(14, 0))
-
+        # Right: controls (scrollable, so a short window still reaches Export)
+        right = self._scrollable(root)
         self._build_crop_panel(right)
         self._build_trim_panel(right)
         self._build_export_panel(right)
+
+        # "More options" expander — feature panels land in self.advanced later.
+        self.adv_shown = False
+        self.adv_btn = ttk.Button(right, text="More options  ▸",
+                                  command=self._toggle_adv)
+        self.adv_btn.grid(row=3, column=0, sticky="ew", pady=(8, 2))
+        self.advanced = ttk.Frame(right)
 
     def _build_crop_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Crop", padding=8)
