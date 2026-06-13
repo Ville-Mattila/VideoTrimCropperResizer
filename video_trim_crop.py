@@ -2,7 +2,7 @@
 Video Trim / Crop / Resize - a simple native Windows UI for ffmpeg.
 
 Open a video, drag a crop rectangle, set trim start/end, and export an
-H.264 .mp4 suitable for social media sharing.
+H.264 .mp4 in a widely compatible format.
 
 Requires: ffmpeg and ffprobe on PATH (already detected on this machine).
 No third-party Python packages needed - uses only the standard library.
@@ -35,7 +35,7 @@ HANDLE = 7  # half-size of a corner grab handle, in canvas pixels
 # Aspect presets: label -> width/height ratio (None = free draw).
 ASPECTS = [
     ("Free", None),
-    ("9:16 (Reels/TikTok)", 9 / 16),
+    ("9:16 (Vertical)", 9 / 16),
     ("1:1 (Square)", 1.0),
     ("4:5 (Portrait)", 4 / 5),
     ("16:9 (Landscape)", 16 / 9),

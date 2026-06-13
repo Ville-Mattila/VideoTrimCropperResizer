@@ -1,7 +1,7 @@
 # Video Trim / Crop / Resize
 
 A small Windows app for ffmpeg. **Drag in a video, crop it, trim its
-length, and export an H.264 `.mp4`** ready for social media sharing.
+length, and export it as a widely compatible H.264 `.mp4`.**
 
 ## The app
 
@@ -28,7 +28,7 @@ no install needed.
 ## Output
 
 H.264 (`libx264`), `yuv420p`, `+faststart` for instant web playback, AAC
-audio at 128 kbps — broadly compatible with Instagram, TikTok, X, etc.
+audio at 128 kbps — a widely compatible format that plays virtually anywhere.
 Crop offsets/dimensions are snapped to even numbers as H.264 requires.
 
 ## Developing / rebuilding
