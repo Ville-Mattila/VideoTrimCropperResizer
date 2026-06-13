@@ -1,6 +1,6 @@
 # Video Trim / Crop / Resize
 
-Fuck this. A small Windows app for ffmpeg. **Drag in a video, crop it, trim its
+A small Windows app for ffmpeg. **Drag in a video, crop it, trim its
 length, and export it as a widely compatible H.264 `.mp4`.**
 
 ## The app
