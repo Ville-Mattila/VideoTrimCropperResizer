@@ -11,5 +11,8 @@ __pycache__/
 # Editor lock files (e.g. Affinity Designer)
 *~lock~
 
+# Brainstorming visual-companion sessions
+.superpowers/
+
 # These can contain machine-specific absolute paths
 *.log
