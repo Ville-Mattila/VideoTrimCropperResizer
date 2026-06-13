@@ -166,6 +166,8 @@ class ExportSettings:
     scale_cap: int | None = None    # longest-side cap, or None for original
     crf: int = 20
     fmt: str = "mp4"                # mp4 (gif/webm/mp3 arrive in later phases)
+    fast_trim: bool = True          # allow lossless -c copy for trim-only jobs
+    hw: bool = False                # GPU encode (h264_nvenc) instead of libx264
 
 
 def _out_dims(s):
@@ -192,13 +194,43 @@ def _video_filters(s):
     return chain
 
 
+def _is_passthrough(s):
+    """A trim-only job (no crop/scale/format change or future transforms) can be
+    a lossless stream copy. getattr() keeps this forward-compatible as later
+    phases add transform/audio fields."""
+    return (getattr(s, "fast_trim", True)
+            and s.crop is None and s.scale_cap is None and s.fmt == "mp4"
+            and not getattr(s, "rotate", 0)
+            and not getattr(s, "flip_h", False)
+            and not getattr(s, "flip_v", False)
+            and getattr(s, "speed", 1.0) == 1.0
+            and not getattr(s, "fade_in", 0) and not getattr(s, "fade_out", 0)
+            and getattr(s, "fill_mode", "crop") in ("crop", "none")
+            and not getattr(s, "boomerang", False)
+            and not getattr(s, "reverse", False)
+            and getattr(s, "loop", 0) == 0
+            and not getattr(s, "mute", False)
+            and getattr(s, "volume", 1.0) == 1.0
+            and not getattr(s, "audio_only", False))
+
+
+def _venc(s):
+    """Video encoder args: GPU (NVENC) or software (libx264)."""
+    if getattr(s, "hw", False):
+        return ["-c:v", "h264_nvenc", "-preset", "p5", "-cq", str(s.crf)]
+    return ["-c:v", "libx264", "-preset", "medium", "-crf", str(s.crf)]
+
+
 def build_commands(s):
     """Return a list of ffmpeg command arg-lists (one or more passes)."""
     dur = max(0.001, s.end - s.start)
+    if _is_passthrough(s):
+        return [[FFMPEG, "-y", "-ss", f"{s.start:.3f}", "-i", s.input_path,
+                 "-t", f"{dur:.3f}", "-c", "copy", "-movflags", "+faststart",
+                 s.output_path]]
     vf = ",".join(_video_filters(s))
     cmd = [FFMPEG, "-y", "-ss", f"{s.start:.3f}", "-i", s.input_path,
-           "-t", f"{dur:.3f}", "-vf", vf,
-           "-c:v", "libx264", "-preset", "medium", "-crf", str(s.crf),
+           "-t", f"{dur:.3f}", "-vf", vf, *_venc(s),
            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
            "-c:a", "aac", "-b:a", "128k", s.output_path]
     return [cmd]
@@ -248,10 +280,18 @@ class App(BaseTk):
 
         self.export_proc = None
         self._cancelled = False
+        self.has_nvenc = self._detect_nvenc()
 
         self._apply_theme()
         self._build_ui()
         self._apply_dark_titlebar()
+
+    def _detect_nvenc(self):
+        try:
+            r = run_capture([FFMPEG, "-hide_banner", "-encoders"])
+            return "h264_nvenc" in (r.stdout or "")
+        except OSError:
+            return False
 
     # --------------------------------------------------------------- theming
     def _apply_theme(self):
@@ -476,6 +516,7 @@ class App(BaseTk):
                                   command=self._toggle_adv)
         self.adv_btn.grid(row=3, column=0, sticky="ew", pady=(8, 2))
         self.advanced = ttk.Frame(right)
+        self._build_encoding_panel(self.advanced)
 
     def _build_crop_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Crop", padding=8)
@@ -537,10 +578,13 @@ class App(BaseTk):
 
         ttk.Label(box, text="Downscale").grid(row=0, column=0, sticky="w")
         self.scale_var = tk.StringVar(value=SCALE_OPTIONS[0][0])
-        ttk.Combobox(
+        scale_cb = ttk.Combobox(
             box, textvariable=self.scale_var, state="readonly",
             values=[s[0] for s in SCALE_OPTIONS], width=22,
-        ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        )
+        scale_cb.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        scale_cb.bind("<<ComboboxSelected>>",
+                      lambda _e: self._update_export_hint())
 
         ttk.Label(box, text="Quality (CRF, lower = better)").grid(
             row=2, column=0, columnspan=2, sticky="w")
@@ -562,14 +606,46 @@ class App(BaseTk):
                                      command=self.cancel_export, state="disabled")
         self.cancel_btn.grid(row=0, column=1, padx=(6, 0))
 
+        self.export_hint = ttk.Label(box, text="", foreground=GOLD)
+        self.export_hint.grid(row=5, column=0, columnspan=2, sticky="w")
         self.progress = ttk.Progressbar(box, length=240, mode="determinate")
-        self.progress.grid(row=5, column=0, columnspan=2, sticky="ew")
+        self.progress.grid(row=6, column=0, columnspan=2, sticky="ew")
         self.status_label = ttk.Label(box, text="")
-        self.status_label.grid(row=6, column=0, columnspan=2, sticky="w",
+        self.status_label.grid(row=7, column=0, columnspan=2, sticky="w",
                                pady=(4, 0))
+
+    def _build_encoding_panel(self, parent):
+        box = ttk.LabelFrame(parent, text="Encoding", padding=8)
+        box.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        self.fast_trim_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            box, text="Fast trim when possible (lossless, no re-encode)",
+            variable=self.fast_trim_var,
+            command=self._update_export_hint).grid(row=0, column=0, sticky="w")
+        self.hw_var = tk.BooleanVar(value=False)
+        self.hw_chk = ttk.Checkbutton(
+            box, text="Fast encode (GPU / NVENC)", variable=self.hw_var,
+            command=self._update_export_hint)
+        self.hw_chk.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        if not self.has_nvenc:
+            self.hw_chk.config(state="disabled")
+            ttk.Label(box, text="(no NVENC GPU detected)",
+                      foreground=MUTED).grid(row=2, column=0, sticky="w")
 
     def _on_crf(self, _v):
         self.crf_label.config(text=str(self.crf_var.get()))
+
+    def _update_export_hint(self):
+        if not self.input_path:
+            self.export_hint.config(text="")
+            return
+        s = self._settings("")
+        if _is_passthrough(s):
+            self.export_hint.config(text="⚡ Lossless fast trim (no re-encode)")
+        elif s.hw:
+            self.export_hint.config(text="Re-encode: H.264 (GPU)")
+        else:
+            self.export_hint.config(text="Re-encode: H.264")
 
     def cancel_export(self):
         self._cancelled = True
@@ -940,6 +1016,7 @@ class App(BaseTk):
             self.crop_label.config(text="Crop: full frame")
         self.trim_label.config(
             text=f"Duration: {max(0.0, self.end_t - self.start_t):.3f} s")
+        self._update_export_hint()
 
     # ------------------------------------------------------------- exporting
     def _settings(self, out):
@@ -950,7 +1027,8 @@ class App(BaseTk):
             start=self.start_t, end=self.end_t,
             crop=tuple(self.crop) if self.crop else None,
             scale_cap=dict(SCALE_OPTIONS)[self.scale_var.get()],
-            crf=self.crf_var.get(), fmt="mp4")
+            crf=self.crf_var.get(), fmt="mp4",
+            fast_trim=self.fast_trim_var.get(), hw=self.hw_var.get())
 
     def export(self):
         if not self.input_path:

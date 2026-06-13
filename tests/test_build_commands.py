@@ -6,37 +6,54 @@ def make(leike, **kw):
     return S(**base)
 
 
-def test_baseline_single_pass(leike):
-    cmds = leike["build_commands"](make(leike))
+def test_trim_only_is_lossless_copy(leike):
+    cmds = leike["build_commands"](make(leike))      # no crop/scale -> passthrough
     assert len(cmds) == 1
-    c = cmds[0]
-    j = " ".join(c)
+    j = " ".join(cmds[0])
+    assert "-c copy" in j
+    assert "-vf" not in cmds[0]
     assert "-ss 1.000" in j and "-t 3.000" in j      # dur = end - start
-    assert "format=yuv420p" in j
-    assert "libx264" in j and "-crf 20" in j
-    assert "+faststart" in j and "aac" in j
-    assert c[-1] == "out.mp4"
+    assert "+faststart" in j
 
 
-def test_crop_no_extra_scale(leike):
-    # crop 1280x720 with a 1280 cap: longest side already at the cap -> no scale
+def test_fast_trim_off_reencodes(leike):
+    cmds = leike["build_commands"](make(leike, fast_trim=False))
+    j = " ".join(cmds[0])
+    assert "libx264" in j and "-crf 20" in j and "format=yuv420p" in j
+    assert "-c copy" not in j
+
+
+def test_crop_reencodes_with_crop_filter(leike):
     cmds = leike["build_commands"](make(leike, crop=(10, 20, 1280, 720), scale_cap=1280))
     j = " ".join(cmds[0])
-    assert "crop=1280:720:10:20" in j
+    assert "crop=1280:720:10:20" in j     # cropped 1280 already at the 1280 cap
     assert "scale=" not in j
+    assert "-c copy" not in j
 
 
 def test_scale_when_capped(leike):
-    # no crop, 1920x1080 source, cap 1280 -> downscale to 1280x720
     cmds = leike["build_commands"](make(leike, scale_cap=1280))
     assert "scale=1280:720" in " ".join(cmds[0])
 
 
-def test_crf_passthrough(leike):
-    cmds = leike["build_commands"](make(leike, crf=18))
+def test_crf_propagates(leike):
+    cmds = leike["build_commands"](make(leike, crop=(0, 0, 1280, 720), crf=18))
     assert "-crf 18" in " ".join(cmds[0])
 
 
 def test_odd_dims_snapped_even(leike):
     cmds = leike["build_commands"](make(leike, crop=(0, 0, 641, 361)))
     assert "crop=640:360:0:0" in " ".join(cmds[0])
+
+
+def test_hw_encoder_nvenc(leike):
+    cmds = leike["build_commands"](make(leike, crop=(0, 0, 1280, 720), hw=True))
+    j = " ".join(cmds[0])
+    assert "h264_nvenc" in j and "-cq 20" in j
+    assert "libx264" not in j
+
+
+def test_sw_encoder_default(leike):
+    cmds = leike["build_commands"](make(leike, crop=(0, 0, 1280, 720), hw=False))
+    j = " ".join(cmds[0])
+    assert "libx264" in j and "-crf 20" in j
