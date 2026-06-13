@@ -767,6 +767,10 @@ class App(BaseTk):
         self.playhead_label = ttk.Label(scrub, text="00:00.000", width=12)
         self.playhead_label.grid(row=0, column=2, padx=(6, 0))
 
+        self.grab_btn = ttk.Button(left, text="Grab frame",
+                                   command=self.grab_frame, state="disabled")
+        self.grab_btn.grid(row=4, column=0, sticky="w", pady=(4, 0))
+
         # Right: controls (scrollable, so a short window still reaches Export)
         right = self._scrollable(root)
         self._build_crop_panel(right)
@@ -1158,6 +1162,7 @@ class App(BaseTk):
         self.scrub.config(to=max(self.duration, 0.001))
         self.scrub_var.set(0.0)
         self.export_btn.config(state="normal")
+        self.grab_btn.config(state="normal")
         self.update_labels()
         self.request_preview(0.0)
 
@@ -1494,6 +1499,31 @@ class App(BaseTk):
             return max(0.0, float(var.get() or 0))
         except ValueError:
             return 0.0
+
+    def grab_frame(self):
+        """Save the current playhead frame as an image (crop + rotate/flip)."""
+        if not self.input_path:
+            return
+        base = os.path.splitext(os.path.basename(self.input_path))[0]
+        out = filedialog.asksaveasfilename(
+            title="Save frame as", defaultextension=".png",
+            initialfile=f"{base}_frame.png",
+            initialdir=os.path.dirname(self.input_path),
+            filetypes=[("PNG image", "*.png"), ("JPEG image", "*.jpg")])
+        if not out:
+            return
+        s = self._settings(out)
+        vf = _crop_filter(s) + _orient_filters(s) + _scale_filter(s)
+        cmd = [FFMPEG, "-y", "-ss", f"{self.playhead:.3f}", "-i", self.input_path,
+               "-frames:v", "1", "-update", "1"]
+        if vf:
+            cmd += ["-vf", ",".join(vf)]
+        cmd += [out]
+        if run_capture(cmd).returncode == 0 and os.path.exists(out):
+            self.status_label.config(text="Frame saved.")
+            messagebox.showinfo("Frame saved", f"Saved:\n{out}")
+        else:
+            messagebox.showerror("Grab failed", "Could not save the frame.")
 
     def export(self):
         if not self.input_path:
