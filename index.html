@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leike — a small, quick video clip tool for Windows</title>
+  <meta name="description" content="Leike is a small, fast Windows app for ffmpeg. Drag in a video — crop, trim, resize, transform, adjust, overlay, and convert it, then export. Free and open source." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Leike — quick video trim, crop & convert for Windows" />
+  <meta property="og:description" content="Drag in a video — crop, trim, resize, transform, and convert. Then export. Free, open source, ffmpeg-powered." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/leike-screenshot.png" />
+
+  <link rel="icon" type="image/svg+xml" href="assets/leike-icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Lenis smooth-scroll styles -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.css" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Background motifs -->
+  <div class="bg-glows" aria-hidden="true">
+    <span class="glow glow-1"></span>
+    <span class="glow glow-2"></span>
+    <span class="glow glow-3"></span>
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- Scroll progress -->
+  <div class="scroll-progress" aria-hidden="true"><span></span></div>
+
+  <!-- Nav -->
+  <header class="nav" id="nav">
+    <a class="nav-brand" href="#top" aria-label="Leike home">
+      <svg class="nav-icon" viewBox="0 0 301 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M300.021,75L300.021,225C300.021,266.394 266.414,300 225.021,300L75,300C33.606,300 0,266.394 0,225L0,75C0,33.606 33.606,0 75,0L225.021,0C266.414,0 300.021,33.606 300.021,75ZM141.962,134.711L67.908,230.047L67.908,256.977L252.132,256.977L260.157,202.257L141.962,202.257L141.962,134.711Z" fill="#FFC551"/>
+        <path d="M138.665,273.673L138.665,81.601L211.965,81.601L211.965,179.309L138.665,273.673Z" fill="#1B1508" transform="matrix(0.324187,0,0,1.022579,98.7,0)"/>
+      </svg>
+      <span>Leike</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a class="nav-gh" href="https://github.com/Ville-Mattila/Leike" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- ============================ HERO ============================ -->
+    <section class="hero" id="hero">
+      <div class="hero-inner">
+        <p class="eyebrow" data-hero="eyebrow">Free · Open source · Windows 10/11</p>
+
+        <h1 class="wordmark" data-hero="wordmark" aria-label="Leike">
+          <svg viewBox="0 0 926 294" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+            <path class="wm-gold" d="M640.204,44.59L725.055,44.59L633.701,146.415L728.305,293.376L643.089,293.376L583.15,193.717L561.485,216.104L561.485,293.376L488.907,293.376L488.907,239.644L640.204,44.59ZM912.097,138.832L912.097,192.634L798.716,192.634L798.716,239.213L925.457,239.213L917.152,293.376L728.666,293.376L728.666,44.59L916.791,44.59L916.791,98.752L798.716,98.752L798.716,138.832L912.097,138.832Z"/>
+            <g transform="matrix(1.045795,0,0,1.045795,-128.496574,-367.372885)">
+              <path class="wm-cream" d="M561.143,589.178L511.991,589.178L511.991,351.286L582.081,351.286L582.081,562.184L561.143,589.178ZM611.084,524.794L611.084,351.286L680.483,351.286L680.483,435.323L611.084,524.794ZM122.87,589.178L122.87,351.286L192.96,351.286L192.96,537.387L304.828,537.387L297.232,589.178L122.87,589.178ZM487.131,441.402L487.131,492.847L378.716,492.847L378.716,537.387L499.906,537.387L491.965,589.178L311.733,589.178L311.733,351.286L491.62,351.286L491.62,403.076L378.716,403.076L378.716,441.402L487.131,441.402Z"/>
+            </g>
+          </svg>
+        </h1>
+
+        <p class="lede" data-hero="lede" data-split>A small, quick Windows app for ffmpeg.</p>
+        <p class="sub" data-hero="sub">Drag in a video — crop, trim, resize, transform, adjust, overlay, and convert it. Then export a clip that plays everywhere.</p>
+
+        <div class="hero-cta" data-hero="cta">
+          <a class="btn btn-primary magnetic" href="#download">
+            <span>Download for Windows</span>
+          </a>
+          <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike" target="_blank" rel="noopener">
+            <span>View on GitHub</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- verb marquee -->
+      <div class="marquee" data-hero="marquee" aria-hidden="true">
+        <div class="marquee-track">
+          <span>Trim</span><i>·</i><span>Crop</span><i>·</i><span>Resize</span><i>·</i><span>Convert</span><i>·</i><span>Transform</span><i>·</i><span>Adjust</span><i>·</i><span>Overlay</span><i>·</i><span>Stabilize</span><i>·</i>
+          <span>Trim</span><i>·</i><span>Crop</span><i>·</i><span>Resize</span><i>·</i><span>Convert</span><i>·</i><span>Transform</span><i>·</i><span>Adjust</span><i>·</i><span>Overlay</span><i>·</i><span>Stabilize</span><i>·</i>
+        </div>
+      </div>
+
+      <a class="scroll-cue" href="#showcase" data-hero="cue" aria-label="Scroll down">
+        <span></span>
+      </a>
+    </section>
+
+    <!-- ========================== SHOWCASE ========================== -->
+    <section class="showcase" id="showcase">
+      <div class="showcase-head">
+        <h2 class="section-title" data-reveal>One window. The whole edit.</h2>
+        <p class="section-lede" data-reveal>No timeline soup, no sign-in, no upload. Open a file, make your cut, and export — Leike drives <strong>ffmpeg</strong> under the hood and gets out of your way.</p>
+      </div>
+      <div class="shot-stage" id="shotStage">
+        <div class="shot-frame" id="shotFrame">
+          <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+          <img src="assets/leike-screenshot.png" alt="The Leike app showing the Effects tab with transform and adjustment controls" loading="lazy" />
+          <div class="shot-glow" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== FEATURES ========================== -->
+    <section class="features" id="features">
+      <div class="features-head">
+        <p class="kicker" data-reveal>Everything you need</p>
+        <h2 class="section-title" data-reveal>Packed, not bloated.</h2>
+      </div>
+      <div class="feature-grid" id="featureGrid">
+        <!-- cards injected/animated; authored here for no-JS fallback -->
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="crop"></span>
+          <h3>Crop with presets</h3>
+          <p>Drag a box on the preview. Lock it to 9:16, 1:1, 4:5, 16:9 — or go free.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="trim"></span>
+          <h3>Trim &amp; filmstrip</h3>
+          <p>Scrub a live preview with a thumbnail strip. Lossless fast-trim when the cut allows.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="format"></span>
+          <h3>MP4 · WebM · GIF · MP3</h3>
+          <p>Export H.264 by default, or switch format in a click — including audio-only.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="gpu"></span>
+          <h3>GPU encoding</h3>
+          <p>NVENC acceleration kicks in automatically when a compatible GPU is present.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="transform"></span>
+          <h3>Transforms</h3>
+          <p>Rotate, mirror, change speed, fade, aspect-fill, reverse, boomerang, loop.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="adjust"></span>
+          <h3>Color &amp; cleanup</h3>
+          <p>Brightness, contrast, saturation, grayscale, denoise, sharpen.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="overlay"></span>
+          <h3>Overlays</h3>
+          <p>Burn in a text caption, an image watermark, or a subtitle file.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="size"></span>
+          <h3>Fit a size limit</h3>
+          <p>Target a max file size and Leike picks the bitrate with a two-pass encode.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="stabilize"></span>
+          <h3>Stabilization</h3>
+          <p>Smooth shaky footage with a two-pass deshake.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="grab"></span>
+          <h3>Grab a frame</h3>
+          <p>Save the current preview frame as a still image, instantly.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="audio"></span>
+          <h3>Audio control</h3>
+          <p>Mute, set the volume, or rip the audio out to MP3.</p>
+        </article>
+        <article class="feature-card" data-feature>
+          <span class="fi" data-icon="local"></span>
+          <h3>Fully local</h3>
+          <p>Nothing uploads. Your files never leave your machine. Settings are remembered.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ========================== DOWNLOAD ========================== -->
+    <section class="download" id="download">
+      <div class="download-head">
+        <p class="kicker" data-reveal>Get Leike</p>
+        <h2 class="section-title" data-reveal>Download &amp; go.</h2>
+        <p class="section-lede" data-reveal>Windows 10/11 (64-bit). Always pulls the latest release.</p>
+      </div>
+
+      <div class="dl-grid">
+        <article class="dl-card featured" data-reveal>
+          <div class="dl-badge">Recommended</div>
+          <h3>Installer</h3>
+          <p class="dl-file">Leike-Setup.exe</p>
+          <p class="dl-desc">Installs the app and ffmpeg together, with a Start-Menu shortcut and uninstaller. No admin prompt.</p>
+          <a class="btn btn-primary magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-Setup.exe">
+            <span>Download installer</span>
+          </a>
+        </article>
+
+        <article class="dl-card" data-reveal>
+          <h3>Portable</h3>
+          <p class="dl-file">Leike-portable-win64.zip</p>
+          <p class="dl-desc">No install. Unzip and run — ffmpeg is bundled inside. Great for a USB stick.</p>
+          <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-portable-win64.zip">
+            <span>Download zip</span>
+          </a>
+        </article>
+
+        <article class="dl-card" data-reveal>
+          <h3>Standalone</h3>
+          <p class="dl-file">Leike.exe</p>
+          <p class="dl-desc">Just the app. Use it if you already have ffmpeg on your PATH.</p>
+          <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike.exe">
+            <span>Download exe</span>
+          </a>
+        </article>
+      </div>
+
+      <p class="dl-foot" data-reveal>
+        Prefer to inspect first? <a href="https://github.com/Ville-Mattila/Leike/releases" target="_blank" rel="noopener">Browse all releases</a>
+        or <a href="https://github.com/Ville-Mattila/Leike" target="_blank" rel="noopener">read the source</a>.
+      </p>
+    </section>
+  </main>
+
+  <!-- =========================== FOOTER =========================== -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <svg class="nav-icon" viewBox="0 0 301 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M300.021,75L300.021,225C300.021,266.394 266.414,300 225.021,300L75,300C33.606,300 0,266.394 0,225L0,75C0,33.606 33.606,0 75,0L225.021,0C266.414,0 300.021,33.606 300.021,75ZM141.962,134.711L67.908,230.047L67.908,256.977L252.132,256.977L260.157,202.257L141.962,202.257L141.962,134.711Z" fill="#FFC551"/>
+        <path d="M138.665,273.673L138.665,81.601L211.965,81.601L211.965,179.309L138.665,273.673Z" fill="#1B1508" transform="matrix(0.324187,0,0,1.022579,98.7,0)"/>
+      </svg>
+      <div>
+        <strong>Leike</strong>
+        <span>Finnish for “a clip”.</span>
+      </div>
+    </div>
+    <nav class="footer-links">
+      <a href="https://github.com/Ville-Mattila/Leike" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/Ville-Mattila/Leike/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/Ville-Mattila/Leike/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">Licenses</a>
+    </nav>
+    <p class="footer-legal">
+      App code is MIT. Bundled ffmpeg is a GPLv3 build by gyan.dev (runs as a separate program).
+      Built with ffmpeg — not affiliated with the FFmpeg project.
+    </p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
