@@ -499,6 +499,30 @@ def build_commands(s):
              "-movflags", "+faststart", s.output_path]]
 
 
+def _config_path():
+    base = os.path.join(os.environ.get("LOCALAPPDATA", tempfile.gettempdir()),
+                        "Leike")
+    return os.path.join(base, "config.json")
+
+
+def load_config():
+    try:
+        with open(_config_path(), encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_config(cfg):
+    try:
+        os.makedirs(os.path.dirname(_config_path()), exist_ok=True)
+        with open(_config_path(), "w", encoding="utf-8") as f:
+            json.dump(cfg, f)
+    except OSError:
+        pass
+
+
 class App(BaseTk):
     def __init__(self):
         super().__init__()
@@ -548,6 +572,52 @@ class App(BaseTk):
         self._apply_theme()
         self._build_ui()
         self._apply_dark_titlebar()
+        self._cfg = load_config()
+        self.out_dir = self._cfg.get("out_dir")
+        self._apply_config()
+        self._bind_shortcuts()
+
+    def _apply_config(self):
+        c = self._cfg
+        try:
+            if c.get("fmt") in [f[0] for f in FORMATS]:
+                self.fmt_var.set(c["fmt"])
+                self._on_format_change()
+            if c.get("scale") in [s[0] for s in SCALE_OPTIONS]:
+                self.scale_var.set(c["scale"])
+            if isinstance(c.get("crf"), int):
+                self.crf_var.set(c["crf"])
+                self.crf_label.config(text=str(c["crf"]))
+            if isinstance(c.get("fast_trim"), bool):
+                self.fast_trim_var.set(c["fast_trim"])
+            if isinstance(c.get("hw"), bool) and self.has_nvenc:
+                self.hw_var.set(c["hw"])
+        except Exception:
+            pass
+
+    def _save_config(self):
+        save_config({
+            "out_dir": self.out_dir,
+            "fmt": self.fmt_var.get(),
+            "scale": self.scale_var.get(),
+            "crf": self.crf_var.get(),
+            "fast_trim": self.fast_trim_var.get(),
+            "hw": self.hw_var.get(),
+        })
+
+    def _bind_shortcuts(self):
+        self.bind("<Control-e>", lambda e: self._shortcut_export())
+        self.bind("<Control-g>",
+                  lambda e: self.grab_frame() if self.input_path else None)
+        self.bind("<Escape>", lambda e: self.cancel_export())
+        self.bind("[", lambda e: (self.set_from_playhead("start")
+                                  if self.input_path else None))
+        self.bind("]", lambda e: (self.set_from_playhead("end")
+                                  if self.input_path else None))
+
+    def _shortcut_export(self):
+        if self.input_path and str(self.export_btn["state"]) == "normal":
+            self.export()
 
     def _detect_nvenc(self):
         try:
@@ -1508,7 +1578,7 @@ class App(BaseTk):
         out = filedialog.asksaveasfilename(
             title="Save frame as", defaultextension=".png",
             initialfile=f"{base}_frame.png",
-            initialdir=os.path.dirname(self.input_path),
+            initialdir=self.out_dir or os.path.dirname(self.input_path),
             filetypes=[("PNG image", "*.png"), ("JPEG image", "*.jpg")])
         if not out:
             return
@@ -1540,7 +1610,7 @@ class App(BaseTk):
         out = filedialog.asksaveasfilename(
             title="Export as", defaultextension=ext,
             initialfile=f"{base}_export{ext}",
-            initialdir=os.path.dirname(self.input_path),
+            initialdir=self.out_dir or os.path.dirname(self.input_path),
             filetypes=ftypes,
         )
         if not out:
@@ -1548,6 +1618,8 @@ class App(BaseTk):
         if os.path.abspath(out) == os.path.abspath(self.input_path):
             messagebox.showerror("Error", "Choose a different output file.")
             return
+        self.out_dir = os.path.dirname(out)
+        self._save_config()
 
         dur = max(0.001, self.end_t - self.start_t)
         cmds = build_commands(self._settings(out))
