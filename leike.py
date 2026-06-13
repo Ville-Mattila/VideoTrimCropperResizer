@@ -561,6 +561,9 @@ class App(BaseTk):
         self._preview_img = None
         self._preview_token = 0
         self._scrub_after = None
+        self._strip_img = None
+        self._strip_token = 0
+        self._strip_after = None
         self._tmp_png = os.path.join(
             tempfile.gettempdir(), f"vtc_preview_{os.getpid()}.png"
         )
@@ -837,9 +840,16 @@ class App(BaseTk):
         self.playhead_label = ttk.Label(scrub, text="00:00.000", width=12)
         self.playhead_label.grid(row=0, column=2, padx=(6, 0))
 
+        self.strip = tk.Canvas(left, height=52, bg=PANEL_BG,
+                               highlightthickness=1, highlightbackground=BORDER)
+        self.strip.grid(row=4, column=0, sticky="ew", pady=(4, 0))
+        self.strip.bind("<Button-1>", self._strip_seek)
+        self.strip.bind("<B1-Motion>", self._strip_seek)
+        self.strip.bind("<Configure>", self._on_strip_resize)
+
         self.grab_btn = ttk.Button(left, text="Grab frame",
                                    command=self.grab_frame, state="disabled")
-        self.grab_btn.grid(row=4, column=0, sticky="w", pady=(4, 0))
+        self.grab_btn.grid(row=5, column=0, sticky="w", pady=(4, 0))
 
         # Right: controls (scrollable, so a short window still reaches Export)
         right = self._scrollable(root)
@@ -1235,6 +1245,7 @@ class App(BaseTk):
         self.grab_btn.config(state="normal")
         self.update_labels()
         self.request_preview(0.0)
+        self._build_filmstrip()
 
     def probe(self, path):
         # Prefer ffprobe (precise JSON); fall back to parsing `ffmpeg -i` so a
@@ -1325,6 +1336,53 @@ class App(BaseTk):
             return
         self._preview_img = img  # keep a reference
         self.redraw()
+
+    # ------------------------------------------------------------- filmstrip
+    def _on_strip_resize(self, _e):
+        if self._strip_after:
+            self.after_cancel(self._strip_after)
+        self._strip_after = self.after(250, self._build_filmstrip)
+
+    def _build_filmstrip(self):
+        if not self.input_path:
+            return
+        w = max(self.strip.winfo_width(), 200)
+        self._strip_token += 1
+        threading.Thread(target=self._gen_strip,
+                         args=(w, self._strip_token), daemon=True).start()
+
+    def _gen_strip(self, w, token):
+        h = 50
+        n = max(6, w // 90)               # ~one thumbnail per 90 px
+        tw = max(1, w // n)
+        fps = n / max(0.1, self.duration)
+        out = os.path.join(tempfile.gettempdir(),
+                           f"leike_strip_{os.getpid()}.png")
+        run_capture([FFMPEG, "-y", "-i", self.input_path,
+                     "-vf", f"fps={fps:.6f},scale={tw}:{h},tile={n}x1",
+                     "-frames:v", "1", "-update", "1", out])
+        if token != self._strip_token or not os.path.exists(out):
+            return
+        self.after(0, lambda: self._show_strip(out, token))
+
+    def _show_strip(self, path, token):
+        if token != self._strip_token:
+            return
+        try:
+            img = tk.PhotoImage(file=path)
+        except tk.TclError:
+            return
+        self._strip_img = img
+        self.strip.delete("all")
+        self.strip.create_image(0, 0, anchor="nw", image=img)
+
+    def _strip_seek(self, ev):
+        if not self.input_path or not self.duration:
+            return
+        w = max(self.strip.winfo_width(), 1)
+        frac = min(max(ev.x / w, 0.0), 1.0)
+        self.scrub_var.set(frac * self.duration)
+        self.on_scrub(None)
 
     # ------------------------------------------------------------ rendering
     def redraw(self):
