@@ -800,19 +800,24 @@ class App(BaseTk):
         # Progress bar: gold fill.
         style.configure("Horizontal.TProgressbar", background=GOLD,
                         troughcolor=PANEL_BG, bordercolor=BORDER)
-        # Notebook (tabs)
-        style.configure("TNotebook", background=BASE_BG, borderwidth=0)
+        # Notebook (tabs): selected tab merges with the content, gold text.
+        style.configure("TNotebook", background=BASE_BG, borderwidth=0,
+                        tabmargins=[0, 4, 0, 0])
         style.configure("TNotebook.Tab", background=PANEL_BG, foreground=MUTED,
-                        padding=(10, 6), borderwidth=0)
+                        padding=(16, 8), borderwidth=0,
+                        font=("Segoe UI", 10))
         style.map("TNotebook.Tab",
-                  background=[("selected", PANEL_HI)],
-                  foreground=[("selected", GOLD)])
-        # Primary (accent) button — gold fill, dark text
+                  background=[("selected", BASE_BG), ("active", PANEL_HI)],
+                  foreground=[("selected", GOLD), ("active", TEXT)],
+                  font=[("selected", ("Segoe UI", 10, "bold"))])
+        # Primary (accent) button: gold + dark bold text; disabled goes dark.
         style.configure("Accent.TButton", background=GOLD, foreground=BASE_BG,
-                        bordercolor=GOLD_DEEP, relief="flat", padding=7)
+                        bordercolor=GOLD_DEEP, relief="flat", padding=9,
+                        font=("Segoe UI", 10, "bold"))
         style.map("Accent.TButton",
-                  background=[("active", GOLD_LIGHT), ("pressed", GOLD_DEEP)],
-                  foreground=[("disabled", MUTED)])
+                  background=[("disabled", PANEL_BG), ("pressed", GOLD_DEEP),
+                              ("active", GOLD_LIGHT)],
+                  foreground=[("disabled", MUTED), ("!disabled", BASE_BG)])
         # Small uppercase section label
         style.configure("Section.TLabel", foreground=MUTED, background=BASE_BG)
 
@@ -1033,8 +1038,8 @@ class App(BaseTk):
                                pady=(3, 0))
 
     def _build_crop_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Crop", padding=8)
-        box.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        box = ttk.Frame(parent, padding=2)
+        box.grid(row=0, column=0, sticky="ew")
 
         ttk.Label(box, text="Aspect ratio").grid(row=0, column=0, sticky="w")
         self.aspect_var = tk.StringVar(value=ASPECTS[0][0])
@@ -1059,8 +1064,8 @@ class App(BaseTk):
         ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
     def _build_export_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Export", padding=8)
-        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        box = ttk.Frame(parent, padding=2)
+        box.grid(row=0, column=0, sticky="ew")
 
         ttk.Label(box, text="Format").grid(row=0, column=0, sticky="w")
         self.fmt_var = tk.StringVar(value=FORMATS[0][0])
@@ -1163,8 +1168,8 @@ class App(BaseTk):
         return v
 
     def _build_audio_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Audio", padding=8)
-        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        box = ttk.Frame(parent, padding=2)
+        box.grid(row=0, column=0, sticky="ew")
         self.mute_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(box, text="Mute (remove audio)", variable=self.mute_var,
                         command=self._update_export_hint).grid(
@@ -1295,8 +1300,8 @@ class App(BaseTk):
             row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
     def _build_overlay_panel(self, parent):
-        box = ttk.LabelFrame(parent, text="Overlay", padding=8)
-        box.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        box = ttk.Frame(parent, padding=2)
+        box.grid(row=0, column=0, sticky="ew")
         self.watermark_path = None
         self.subtitles_path = None
 
