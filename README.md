@@ -5,6 +5,8 @@
 convert it — then export.** Defaults to a widely compatible H.264 `.mp4`,
 with WebM, GIF, and MP3 a click away.
 
+🌐 **[Website & downloads → ville-mattila.github.io/Leike](https://ville-mattila.github.io/Leike/)**
+
 ## The app
 
 Easiest: download **`Leike-Setup.exe`** from the
