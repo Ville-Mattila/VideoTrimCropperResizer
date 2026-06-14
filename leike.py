@@ -2705,7 +2705,9 @@ class App(BaseTk):
         return self._start_single()
 
     def _begin_run(self):
-        """Shared pre-run UI: disable Export, enable Cancel, reset progress."""
+        """Shared pre-run UI: clear cancel flag, disable Export, enable Cancel,
+        reset progress. Runs on the main thread before any worker starts."""
+        self._cancelled = False
         self.export_btn.config(state="disabled")
         if getattr(self, "cancel_btn", None):
             self.cancel_btn.config(state="normal")
@@ -2747,7 +2749,10 @@ class App(BaseTk):
         s.input_path = clip.path
         s.src_w, s.src_h = clip.src_w, clip.src_h
         s.start, s.end = clip.start, clip.end
-        s.crop = tuple(clip.crop) if clip.crop else None
+        # Per-clip crop applies only when the mode uses crop; blur-pad ignores
+        # crop, matching single-clip export behaviour.
+        if s.fill_mode != "blur_pad":
+            s.crop = tuple(clip.crop) if clip.crop else None
         return s
 
     def _start_batch(self):
@@ -2776,7 +2781,6 @@ class App(BaseTk):
         threading.Thread(target=self._run_batch, args=(jobs,), daemon=True).start()
 
     def _run_batch(self, jobs):
-        self._cancelled = False
         n = len(jobs)
         done, failed = 0, []
         for k, (clip, cmds, dur, out) in enumerate(jobs):
@@ -2863,7 +2867,6 @@ class App(BaseTk):
 
     def _run_export(self, cmds, dur, out):
         """Single-file export: run all passes, then report done."""
-        self._cancelled = False
         ok, err = self._run_passes(cmds, dur, 0.0, 1.0)
         self.after(0, lambda: self._export_done(ok, err, out))
 
