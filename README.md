@@ -24,6 +24,19 @@ Prefer no install? The **portable zip** (ffmpeg bundled) and the standalone
 > (`ffprobe` is used when present for precise metadata, but isn't required —
 > Leike falls back to `ffmpeg` alone.)
 
+### macOS & Linux
+
+The [Releases page](https://github.com/Ville-Mattila/Leike/releases) also has
+**macOS** (`Leike-macOS-arm64.zip` / `-x86_64.zip`, an unzipped `.app`) and
+**Linux** (`Leike-linux-x86_64.tar.gz`) builds. These do **not** bundle
+ffmpeg — install it with your package manager first
+(`brew install ffmpeg`, `sudo apt install ffmpeg`, …).
+
+- **macOS:** the app isn't notarized, so the first launch needs a right-click
+  → *Open* (or *System Settings → Privacy & Security → Open Anyway*).
+- Drag-and-drop and the dark title bar are Windows-only for now; on macOS and
+  Linux, use the *Open…* button and your desktop's native window frame.
+
 ## Features
 
 - **Crop** with aspect presets (9:16, 1:1, 4:5, 16:9) that lock the shape, or

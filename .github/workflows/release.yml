@@ -1,0 +1,126 @@
+name: Build cross-platform releases
+
+# Builds the macOS (.app) and Linux (binary) standalone apps.
+# - On a tag push (v*) the artifacts are attached to that tag's GitHub release.
+# - "Run workflow" (workflow_dispatch) builds and uploads them as run artifacts
+#   so you can test the builds without cutting a release.
+#
+# Windows builds (Leike.exe, the portable zip, and the installer) are produced
+# locally with the Build-*.bat scripts and are not part of this workflow.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13      # Intel
+            arch: x86_64
+          - os: macos-14      # Apple Silicon
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Generate .icns icon (best-effort)
+        continue-on-error: true
+        run: |
+          set -e
+          brew install librsvg || true
+          if command -v rsvg-convert >/dev/null 2>&1; then
+            rsvg-convert -w 1024 -h 1024 leike-icon.svg -o icon_1024.png
+            mkdir -p leike.iconset
+            for s in 16 32 128 256 512; do
+              sips -z $s $s icon_1024.png --out "leike.iconset/icon_${s}x${s}.png"
+              d=$((s * 2))
+              sips -z $d $d icon_1024.png --out "leike.iconset/icon_${s}x${s}@2x.png"
+            done
+            iconutil -c icns leike.iconset -o leike.icns || true
+          fi
+
+      - name: Build .app
+        run: |
+          ICON=""
+          [ -f leike.icns ] && ICON="--icon leike.icns"
+          pyinstaller --noconfirm --windowed --name Leike $ICON leike.py
+
+      - name: Package (zip the .app)
+        run: |
+          cd dist
+          ditto -c -k --keepParent Leike.app "Leike-macOS-${{ matrix.arch }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Leike-macOS-${{ matrix.arch }}
+          path: dist/Leike-macOS-${{ matrix.arch }}.zip
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Leike-macOS-${{ matrix.arch }}.zip
+
+  linux:
+    name: Linux (x86_64)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify tkinter is available
+        run: python -c "import tkinter; print('Tk', tkinter.TkVersion)"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build binary
+        run: pyinstaller --noconfirm --onefile --windowed --name Leike leike.py
+
+      - name: Package (tarball)
+        run: |
+          mkdir -p pkg/Leike
+          cp dist/Leike pkg/Leike/Leike
+          chmod +x pkg/Leike/Leike
+          cp LICENSE pkg/Leike/LICENSE.txt
+          cp THIRD_PARTY_NOTICES.md pkg/Leike/THIRD_PARTY_NOTICES.txt
+          cp packaging/README-linux.txt pkg/Leike/README.txt
+          cp leike-icon.svg pkg/Leike/leike-icon.svg || true
+          tar -C pkg -czf Leike-linux-x86_64.tar.gz Leike
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Leike-linux-x86_64
+          path: Leike-linux-x86_64.tar.gz
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Leike-linux-x86_64.tar.gz

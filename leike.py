@@ -276,6 +276,31 @@ def _ff_escape_path(p):
     return p.replace("\\", "/").replace(":", "\\:")
 
 
+def _overlay_font_path():
+    """A sans-serif TTF/TTC for drawtext captions, chosen per platform.
+
+    Returns the first font that exists, or None to let ffmpeg pick a default
+    (drawtext falls back to fontconfig when no fontfile is given)."""
+    if sys.platform == "darwin":
+        candidates = ["/System/Library/Fonts/Supplemental/Arial.ttf",
+                      "/Library/Fonts/Arial.ttf",
+                      "/System/Library/Fonts/Helvetica.ttc"]
+    elif os.name == "nt":
+        candidates = ["C:/Windows/Fonts/arial.ttf",
+                      "C:/Windows/Fonts/segoeui.ttf"]
+    else:  # linux / other unix
+        candidates = ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                      "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+                      "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                      "/usr/share/fonts/truetype/liberation/"
+                      "LiberationSans-Regular.ttf",
+                      "/usr/share/fonts/gnu-free/FreeSans.ttf"]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
+
+
 def _drawtext_filter(s):
     """Caption via drawtext; uses a temp textfile to avoid text escaping."""
     txt = getattr(s, "text", "") or ""
@@ -288,8 +313,9 @@ def _drawtext_filter(s):
     except OSError:
         return []
     y = "h-th-40" if getattr(s, "text_pos", "bottom") == "bottom" else "40"
-    font = _ff_escape_path("C:/Windows/Fonts/arial.ttf")
-    return [f"drawtext=fontfile='{font}':textfile='{_ff_escape_path(tf)}':"
+    font = _overlay_font_path()
+    font_arg = f"fontfile='{_ff_escape_path(font)}':" if font else ""
+    return [f"drawtext={font_arg}textfile='{_ff_escape_path(tf)}':"
             f"fontcolor=white:fontsize=36:borderw=3:bordercolor=black:"
             f"x=(w-tw)/2:y={y}"]
 
