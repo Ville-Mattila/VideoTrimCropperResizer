@@ -97,10 +97,12 @@
   hero
     .to(".eyebrow", { opacity: 1, y: 0, duration: 0.7 })
     // the cream "LEI" slides in from the left, the gold "KE" from the right,
-    // meeting at the wordmark's natural seam.
-    .to(".wm-left", { xPercent: 0, opacity: 1, duration: 1.1, ease: "power4.out" }, "-=0.3")
-    .to(".wm-right", { xPercent: 0, opacity: 1, duration: 1.1, ease: "power4.out" }, "<")
-    .to(".lede .word", { yPercent: 0, duration: 0.9, stagger: 0.06, ease: "power4.out" }, "-=0.7")
+    // overshooting a little as they meet (a bounce at the seam) while fading up
+    // from transparent.
+    .to(".wm-left", { xPercent: 0, duration: 1.2, ease: "back.out(0.9)" }, "-=0.3")
+    .to(".wm-right", { xPercent: 0, duration: 1.2, ease: "back.out(0.9)" }, "<")
+    .to([".wm-left", ".wm-right"], { opacity: 1, duration: 1.0, ease: "power2.out" }, "<")
+    .to(".lede .word", { yPercent: 0, duration: 0.9, stagger: 0.06, ease: "power4.out" }, "-=0.8")
     .to(".sub", { opacity: 1, y: 0, duration: 0.7 }, "-=0.55")
     .to(".hero-cta", { opacity: 1, y: 0, duration: 0.7 }, "-=0.5")
     .to(".marquee", { opacity: 1, y: 0, duration: 0.8 }, "-=0.4")
