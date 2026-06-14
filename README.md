@@ -43,6 +43,11 @@ ffmpeg — install it with your package manager first
   *Free* — drag a box on the preview, move it, resize from the corners.
 - **Trim** with a scrubbable preview and a filmstrip timeline. *Fast trim*
   cuts losslessly (no re-encode) when the cut allows it.
+- **Built-in playback** with audio and a **live effect preview** — see crop,
+  rotation, and colour changes as it plays. Optional: the playback engine
+  (libmpv) is fetched on demand via an in-app button, so the app stays small.
+- **Reads source metadata** — handles sideways phone videos (rotation),
+  shows fps / codec / bitrate, and greys out audio controls on silent clips.
 - **Resize / downscale** to common heights, or **fit under a target file
   size** (auto two-pass bitrate).
 - **Formats:** H.264 MP4, WebM (VP9), animated GIF, or MP3 (audio-only).
@@ -90,7 +95,8 @@ Source is a single file: `leike.py` (Python 3 + tkinter).
 
 - Run from source: `python leike.py` (or `Run.bat`)
 - Run the tests: `python -m pytest` (pure command-builder + UI-structure tests)
-- Rebuild the exe: `Build-exe.bat` (needs `pip install tkinterdnd2 pyinstaller`)
+- Rebuild the exe: `Build-exe.bat`
+  (needs `pip install tkinterdnd2 python-mpv pyinstaller`)
 - Rebuild the installer: `Build-installer.bat` (needs Inno Setup 6 and ffmpeg
   on PATH)
 
