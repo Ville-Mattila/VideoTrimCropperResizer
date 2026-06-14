@@ -123,6 +123,32 @@ A transport row under the preview (near the current scrub row):
 Deferred (not in this feature): speed dropdown in transport, frame-step
 buttons. (Speed is already controllable in the Effects tab and is honored.)
 
+## On-demand ffprobe download (and the ffplay detour)
+
+During implementation we briefly considered **ffplay** instead of mpv (it
+ships with ffmpeg and applies `-vf`/`-af`). It was rejected: ffplay opens its
+own SDL window (no clean tk embedding) and offers no live transport/seek or
+live filter updates — it cannot deliver the scrubbable, live-updating embedded
+player. **Playback stays on embedded mpv.**
+
+One idea from that detour is kept: **fetch native tooling on demand** rather
+than always bundling it. Concretely, add a small **"Download ffprobe"** action:
+
+- `ffprobe` is currently optional — the app falls back to parsing `ffmpeg -i`.
+  A button (in an unobtrusive spot, e.g. next to the "no ffprobe" hint or in an
+  About/Tools area) downloads `ffprobe.exe` for precise metadata.
+- **Source:** the **gyan.dev** GPL Windows build the project already credits,
+  **pinned to a known URL and verified by SHA-256** before extracting
+  `ffprobe.exe` next to the executable. Never run an unverified binary.
+- **Windows only.** On macOS/Linux the button is replaced by an install hint
+  (`brew install ffmpeg` / `sudo apt install ffmpeg`), since ffprobe comes from
+  the package manager there.
+- The download/verify/extract logic is split so the **URL-pinning + checksum
+  policy is unit-testable** without performing a real download.
+- `libmpv` itself is **bundled** in the Windows build (not downloaded) — it is
+  not available from gyan.dev, and bundling keeps playback working out of the
+  box.
+
 ## Packaging
 
 - **`python-mpv`** added to build/runtime deps (pure-Python ctypes wrapper —
