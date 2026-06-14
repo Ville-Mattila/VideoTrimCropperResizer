@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Leike — OG image</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold: #FFC551; --gold-deep: #D99A2E; --bg: #1B1508;
+      --text: #F5EFE3; --muted: #A89A82; --muted-2: #7E725C; --border: #3A2E12;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: #000; }
+    .og {
+      position: relative; width: 1200px; height: 630px; overflow: hidden;
+      background: var(--bg); color: var(--text); font-family: "Inter", sans-serif;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    /* glows */
+    .glow { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; }
+    .g1 { width: 640px; height: 640px; top: -240px; left: -160px;
+      background: radial-gradient(circle, rgba(255,197,81,0.34), transparent 65%); }
+    .g2 { width: 560px; height: 560px; bottom: -260px; right: -120px;
+      background: radial-gradient(circle, rgba(217,154,46,0.26), transparent 65%); }
+    .g3 { width: 420px; height: 420px; top: 120px; right: 180px;
+      background: radial-gradient(circle, rgba(255,213,128,0.12), transparent 65%); }
+    /* corner ring accents (filmstrip nod) */
+    .frame { position: absolute; inset: 26px; border: 1px solid var(--border);
+      border-radius: 22px; pointer-events: none; }
+
+    .icon { position: absolute; top: 70px; right: 84px; width: 104px; height: 104px;
+      filter: drop-shadow(0 10px 28px rgba(0,0,0,0.5)); z-index: 3; }
+
+    .pad { position: relative; z-index: 2; padding: 0 92px; }
+
+    .pill {
+      display: inline-block; font-family: "Space Grotesk", sans-serif; font-weight: 600;
+      font-size: 19px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--muted);
+      padding: 10px 22px; border: 1px solid var(--border); border-radius: 999px;
+      background: rgba(255,255,255,0.02); margin-bottom: 34px;
+    }
+    .wm { width: 700px; height: auto; display: block; margin-bottom: 36px; }
+    .wm svg { width: 100%; height: auto; overflow: visible; }
+    .wm-gold { fill: var(--gold); }
+    .wm-cream { fill: var(--text); }
+
+    .tag { font-family: "Space Grotesk", sans-serif; font-weight: 500;
+      font-size: 42px; line-height: 1.1; margin-bottom: 30px; letter-spacing: -0.01em; }
+
+    .verbs { display: flex; align-items: center; gap: 18px; }
+    .verbs span { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 30px;
+      color: transparent; -webkit-text-stroke: 1.4px var(--muted-2); }
+    .verbs i { color: var(--gold); font-style: normal; font-size: 22px; }
+
+    .url { position: absolute; bottom: 54px; left: 92px; z-index: 2;
+      font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 22px;
+      letter-spacing: 0.02em; color: var(--gold); }
+    .url::before { content: "↗  "; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="og" id="og">
+    <span class="glow g1"></span>
+    <span class="glow g2"></span>
+    <span class="glow g3"></span>
+    <span class="frame"></span>
+
+    <img class="icon" src="assets/leike-icon.svg" alt="" />
+
+    <div class="pad">
+      <div class="pill">Free · Open source · Windows</div>
+      <div class="wm">
+        <svg viewBox="0 0 926 294" xmlns="http://www.w3.org/2000/svg" aria-label="Leike">
+          <path class="wm-gold" d="M640.204,44.59L725.055,44.59L633.701,146.415L728.305,293.376L643.089,293.376L583.15,193.717L561.485,216.104L561.485,293.376L488.907,293.376L488.907,239.644L640.204,44.59ZM912.097,138.832L912.097,192.634L798.716,192.634L798.716,239.213L925.457,239.213L917.152,293.376L728.666,293.376L728.666,44.59L916.791,44.59L916.791,98.752L798.716,98.752L798.716,138.832L912.097,138.832Z"/>
+          <g transform="matrix(1.045795,0,0,1.045795,-128.496574,-367.372885)">
+            <path class="wm-cream" d="M561.143,589.178L511.991,589.178L511.991,351.286L582.081,351.286L582.081,562.184L561.143,589.178ZM611.084,524.794L611.084,351.286L680.483,351.286L680.483,435.323L611.084,524.794ZM122.87,589.178L122.87,351.286L192.96,351.286L192.96,537.387L304.828,537.387L297.232,589.178L122.87,589.178ZM487.131,441.402L487.131,492.847L378.716,492.847L378.716,537.387L499.906,537.387L491.965,589.178L311.733,589.178L311.733,351.286L491.62,351.286L491.62,403.076L378.716,403.076L378.716,441.402L487.131,441.402Z"/>
+          </g>
+        </svg>
+      </div>
+      <div class="tag">A small, quick Windows app for ffmpeg.</div>
+      <div class="verbs">
+        <span>Trim</span><i>·</i><span>Crop</span><i>·</i><span>Resize</span><i>·</i><span>Convert</span>
+      </div>
+    </div>
+
+    <div class="url">ville-mattila.github.io/Leike</div>
+  </div>
+</body>
+</html>
