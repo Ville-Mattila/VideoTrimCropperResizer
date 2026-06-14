@@ -1615,7 +1615,7 @@ class App(BaseTk):
 
     def _set_mode(self, mode):
         self.mode = mode
-        self._update_export_button()
+        self._update_multi_ui()
 
     def _update_multi_ui(self):
         multi = len(self.clips) >= 2
@@ -2956,6 +2956,7 @@ class App(BaseTk):
         self._save_config()
         g = self._settings(out)
         g.fmt = fmt
+        g.audio_only = False   # combine always produces a video, not audio-only
         cmds = build_concat_commands(self.clips, g)
         dur = sum(max(0.001, c.end - c.start) for c in self.clips) \
             / (g.speed or 1.0)
