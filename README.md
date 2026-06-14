@@ -2,8 +2,9 @@
 
 **Leike** (Finnish for *a clip*) — a small, quick front-end for ffmpeg.
 **Drag in a video; crop, trim, resize, transform, adjust, overlay, and
-convert it — then export.** Defaults to a widely compatible H.264 `.mp4`,
-with WebM, GIF, and MP3 a click away.
+convert it — then export.** Drop in several clips to **combine** them into one
+video, or **batch**-export the whole list at once. Defaults to a widely
+compatible H.264 `.mp4`, with WebM, GIF, and MP3 a click away.
 
 🌐 **[Website & downloads → ville-mattila.github.io/Leike](https://ville-mattila.github.io/Leike/)**
 
@@ -69,8 +70,8 @@ ffmpeg — install it with your package manager first
 
 ## How to use
 
-1. **Open** — drag a video onto the window (or click **Open…**). A preview
-   frame appears.
+1. **Open** — drag a video (or several) onto the window, or click **Open…**.
+   A preview frame appears.
 2. **Crop** *(Crop tab)* — drag a rectangle on the preview. Drag inside it to
    move, a corner to resize. Pick an aspect preset to lock the shape, or
    *Free*. *Reset to full frame* clears it.
@@ -82,7 +83,11 @@ ffmpeg — install it with your package manager first
      stabilize.
    - **Overlay** — add a text caption, watermark image, or subtitle file.
    - **Audio** — mute, adjust volume, or export audio only.
-5. **Export** *(Export tab)* — pick the format, optional downscale, quality
+5. **Multiple clips** *(optional)* — drop several files into the **Files** list
+   on the left (or **Open…** more). Use the **Combine** toggle to join them into
+   one video — click each clip to set its own trim/crop — or **Batch** to export
+   the whole list through the current recipe into a folder.
+6. **Export** *(Export tab)* — pick the format, optional downscale, quality
    (CRF), target size, and GPU toggle. Then hit **Export video** (pinned at
    the bottom, always visible) and choose where to save.
 
