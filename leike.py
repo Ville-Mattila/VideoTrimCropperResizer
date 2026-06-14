@@ -758,9 +758,11 @@ class Player:
         if not self.ok:
             return
         try:
+            # Set the start position via a property and load asynchronously.
+            # Never wait_until_playing() — that blocks the Tk thread and hangs
+            # when the player is currently paused (e.g. after Stop).
+            self.mpv["start"] = max(0.0, start)
             self.mpv.play(path)
-            self.mpv.wait_until_playing()
-            self.mpv.seek(start, reference="absolute")
         except Exception:
             pass
 
@@ -1551,6 +1553,7 @@ class App(BaseTk):
 
     def _on_volume(self, _v):
         self.volume_label.config(text=f"{self.volume_var.get()}%")
+        self._refresh_preview_graph()
 
     def _build_transform_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Transform", padding=10)
@@ -1632,8 +1635,9 @@ class App(BaseTk):
                                             pady=(0, 8))
             lbl = ttk.Label(box, text=f"{var.get()}{suffix}", width=5)
             ttk.Scale(box, from_=frm, to=to, variable=var, length=150,
-                      command=lambda _v: lbl.config(
-                          text=f"{var.get()}{suffix}")).grid(
+                      command=lambda _v: (lbl.config(
+                          text=f"{var.get()}{suffix}"),
+                          self._refresh_preview_graph())).grid(
                 row=row, column=1, sticky="ew", padx=(8, 0), pady=(0, 8))
             lbl.grid(row=row, column=2, padx=(6, 0), pady=(0, 8))
 
