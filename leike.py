@@ -383,6 +383,58 @@ def _linear_video(s, with_scale=True):
     return chain
 
 
+def build_preview_vf(s):
+    """Live-preview filtergraph + mpv properties for ExportSettings s.
+
+    Returns (vf, props):
+      vf    - an mpv 'vf' filter-chain string (libavfilter), or "".
+      props - dict of mpv properties applied directly: speed, volume, mute,
+              and sub-file.
+
+    Only the single-pass, live-previewable subset is included. Reverse,
+    boomerang and stabilize are omitted (not live-previewable); scale is
+    omitted (mpv fits the video to the window); speed/volume/mute/subs are
+    mpv properties (so audio stays in sync) rather than filters.
+    """
+    chain = (_crop_filter(s) + _orient_filters(s) + _adjust_filters(s)
+             + _drawtext_filter(s))
+
+    # Fades, absolute to the source timeline (mpv plays from s.start, so PTS
+    # are source-absolute — unlike export, which input-seeks and resets PTS).
+    fi = getattr(s, "fade_in", 0.0) or 0.0
+    fo = getattr(s, "fade_out", 0.0) or 0.0
+    if fi > 0:
+        chain.append(f"fade=t=in:st={s.start:.2f}:d={fi:.2f}")
+    if fo > 0:
+        chain.append(f"fade=t=out:st={max(0.0, s.end - fo):.2f}:d={fo:.2f}")
+
+    vf = ",".join(chain)
+
+    # Watermark image, merged via a lavfi movie source bridge.
+    wm = getattr(s, "watermark_path", None)
+    if wm:
+        pos = {"tl": "10:10", "tr": "W-w-10:10",
+               "bl": "10:H-h-10", "br": "W-w-10:H-h-10"}.get(
+                   getattr(s, "watermark_pos", "br"), "W-w-10:H-h-10")
+        pre = vf if vf else "null"
+        vf = (f"{pre}[v];movie='{_ff_escape_path(wm)}'[wm];"
+              f"[v][wm]overlay={pos}")
+
+    props = {}
+    sp = getattr(s, "speed", 1.0) or 1.0
+    if sp != 1.0:
+        props["speed"] = sp
+    vol = getattr(s, "volume", 1.0)
+    if vol != 1.0:
+        props["volume"] = vol * 100.0          # mpv volume is a percentage
+    if getattr(s, "mute", False):
+        props["mute"] = True
+    subs = getattr(s, "subtitles_path", None)
+    if subs:
+        props["sub-file"] = subs
+    return vf, props
+
+
 def _blurpad_dims(s):
     sh = even(s.crop[3]) if s.crop else even(s.src_h)
     w, h = even(sh * s.target_aspect), sh
