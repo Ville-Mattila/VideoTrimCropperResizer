@@ -943,7 +943,7 @@ class App(BaseTk):
         super().__init__()
         self.title("Leike")
         self.resizable(True, True)
-        self.minsize(900, 600)
+        self.minsize(1060, 600)
         try:
             if os.path.exists(ICON_FILE):
                 self.iconbitmap(ICON_FILE)
@@ -1233,13 +1233,17 @@ class App(BaseTk):
         # ---- Body ----
         root = ttk.Frame(self, padding=10)
         root.grid(row=1, column=0, sticky="nsew")
-        root.columnconfigure(0, weight=1)
-        root.columnconfigure(1, weight=0)
+        root.columnconfigure(0, weight=0, minsize=190)   # file list
+        root.columnconfigure(1, weight=1)                # preview
+        root.columnconfigure(2, weight=0)                # tabs
         root.rowconfigure(0, weight=1)
 
-        # Left: preview + scrub + filmstrip + trim + grab
+        # Column 0: the multi-file list
+        self._build_file_list(root, col=0)
+
+        # Column 1: preview + scrub + filmstrip + trim + grab
         left = ttk.Frame(root)
-        left.grid(row=0, column=0, sticky="nsew")
+        left.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         left.columnconfigure(0, weight=1)
         left.rowconfigure(0, weight=1)
 
@@ -1296,7 +1300,7 @@ class App(BaseTk):
 
         # Right: custom flat tab bar + content + persistent footer
         right = ttk.Frame(root)
-        right.grid(row=0, column=1, sticky="ns", padx=(12, 0))
+        right.grid(row=0, column=2, sticky="ns", padx=(12, 0))
         right.columnconfigure(0, weight=1)
         right.rowconfigure(1, weight=1)
 
@@ -1344,6 +1348,8 @@ class App(BaseTk):
 
         self._build_footer(right, row=2)
         self._select_tab("Crop")
+        # Now that self.export_btn exists, initialise the multi-file UI state.
+        self._update_multi_ui()
 
     def _select_tab(self, name):
         """Show the named tab's content and restyle the tab bar."""
@@ -1390,6 +1396,125 @@ class App(BaseTk):
                                     foreground=MUTED)
         self.trim_label.grid(row=2, column=0, columnspan=6, sticky="w",
                              pady=(3, 0))
+
+    # ------------------------------------------------------ file-list column
+    def _build_file_list(self, parent, col):
+        wrap = ttk.Frame(parent)
+        wrap.grid(row=0, column=col, sticky="nsew")
+        wrap.rowconfigure(2, weight=1)
+        wrap.columnconfigure(0, weight=1)
+
+        ttk.Label(wrap, text="Files").grid(row=0, column=0, sticky="w")
+
+        # Combine / Batch segmented toggle (disabled until 2+ clips)
+        self.mode_var = tk.StringVar(value="combine")
+        modebar = ttk.Frame(wrap)
+        modebar.grid(row=1, column=0, sticky="ew", pady=(2, 6))
+        modebar.columnconfigure(0, weight=1)
+        modebar.columnconfigure(1, weight=1)
+        self.combine_btn = ttk.Radiobutton(
+            modebar, text="Combine", value="combine", variable=self.mode_var,
+            command=lambda: self._set_mode("combine"), style="Toolbutton")
+        self.batch_btn = ttk.Radiobutton(
+            modebar, text="Batch", value="batch", variable=self.mode_var,
+            command=lambda: self._set_mode("batch"), style="Toolbutton")
+        self.combine_btn.grid(row=0, column=0, sticky="ew")
+        self.batch_btn.grid(row=0, column=1, sticky="ew")
+
+        self.file_listbox = tk.Listbox(
+            wrap, activestyle="none", exportselection=False,
+            bg=PANEL_BG, fg=TEXT, selectbackground=GOLD, selectforeground=BASE_BG,
+            highlightthickness=1, highlightbackground=BORDER, borderwidth=0)
+        self.file_listbox.grid(row=2, column=0, sticky="nsew")
+        self.file_listbox.bind("<<ListboxSelect>>", self._on_list_select)
+
+        btns = ttk.Frame(wrap)
+        btns.grid(row=3, column=0, sticky="ew", pady=(6, 0))
+        ttk.Button(btns, text="Open…", command=self.open_file).pack(
+            side="left")
+        ttk.Button(btns, text="−", width=3, command=self._remove_clip).pack(
+            side="left", padx=(4, 0))
+        ttk.Button(btns, text="↑", width=3,
+                   command=lambda: self._move_clip(-1)).pack(side="right")
+        ttk.Button(btns, text="↓", width=3,
+                   command=lambda: self._move_clip(1)).pack(
+            side="right", padx=(0, 4))
+
+        # NOTE: _update_multi_ui() is NOT called here; it is called at the end
+        # of _build_ui, after self.export_btn has been created by _build_footer.
+
+    def _refresh_file_list(self):
+        """Redraw the listbox rows + edited markers, keep the active selected."""
+        if not hasattr(self, "file_listbox"):
+            return
+        self.file_listbox.delete(0, "end")
+        for c in self.clips:
+            mark = ""
+            if c.crop:
+                mark += " ✎"
+            if c.start > 0.001 or c.end < c.dur - 0.001:
+                mark += " ✓"
+            self.file_listbox.insert("end", f"{os.path.basename(c.path)}{mark}")
+        if 0 <= self.active < len(self.clips):
+            self.file_listbox.selection_clear(0, "end")
+            self.file_listbox.selection_set(self.active)
+
+    def _on_list_select(self, _e):
+        sel = self.file_listbox.curselection()
+        if sel and sel[0] != self.active:
+            self._select_clip(sel[0])
+
+    def _remove_clip(self):
+        if not (0 <= self.active < len(self.clips)):
+            return
+        idx = self.active
+        del self.clips[idx]
+        if not self.clips:
+            self.active = -1
+            self.input_path = None
+            self.crop = None
+            self.file_label.config(text="No file loaded — drag a video in "
+                                        "or click Open…")
+            self.export_btn.config(state="disabled")
+            self.grab_btn.config(state="disabled")
+            self.canvas.delete("all")
+            self._draw_drop_hint()
+        else:
+            self.active = -1
+            self._select_clip(min(idx, len(self.clips) - 1))
+        self._refresh_file_list()
+        self._update_multi_ui()
+
+    def _move_clip(self, delta):
+        i = self.active
+        j = i + delta
+        if not (0 <= i < len(self.clips) and 0 <= j < len(self.clips)):
+            return
+        self.clips[i], self.clips[j] = self.clips[j], self.clips[i]
+        self.active = j
+        self._refresh_file_list()
+
+    def _set_mode(self, mode):
+        self.mode = mode
+        self._update_export_button()
+
+    def _update_multi_ui(self):
+        multi = len(self.clips) >= 2
+        state = "normal" if multi else "disabled"
+        self.combine_btn.config(state=state)
+        self.batch_btn.config(state=state)
+        self._update_export_button()
+
+    def _update_export_button(self):
+        if not hasattr(self, "export_btn"):
+            return
+        n = len(self.clips)
+        if n >= 2 and self.mode == "batch":
+            self.export_btn.config(text=f"Export {n} files")
+        elif n >= 2 and self.mode == "combine":
+            self.export_btn.config(text="Combine & export")
+        else:
+            self.export_btn.config(text="Export video")
 
     def _build_transport(self, parent, row):
         bar = ttk.Frame(parent)
@@ -2020,6 +2145,8 @@ class App(BaseTk):
             added += 1
         if added:
             self._select_clip(len(self.clips) - 1)
+            self._refresh_file_list()
+            self._update_multi_ui()
         return added
 
     def _commit_active(self):
@@ -2067,6 +2194,7 @@ class App(BaseTk):
         self.update_labels()
         self.request_preview(c.start)
         self._build_filmstrip()
+        self._refresh_file_list()
 
     def load_path(self, path):
         if not path or not os.path.exists(path):
