@@ -169,10 +169,10 @@
 
     // showcase screenshot — tilt-to-flat scrub reveal
     gsap.fromTo("#shotFrame",
-      { rotateX: 24, y: 70, scale: 0.88, opacity: 0.55 },
+      { rotateX: 38, y: 96, scale: 0.84, opacity: 0.35 },
       {
         rotateX: 0, y: 0, scale: 1, opacity: 1, ease: "none",
-        scrollTrigger: { trigger: "#shotStage", start: "top 85%", end: "top 35%", scrub: 1 }
+        scrollTrigger: { trigger: "#shotStage", start: "top 90%", end: "top 30%", scrub: 1 }
       });
 
     // generic reveals (section titles, ledes, kickers, download cards)

@@ -213,7 +213,7 @@ section { position: relative; }
 .showcase-head { max-width: 760px; margin: 0 auto clamp(40px, 7vw, 72px); text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 18px; }
 
-.shot-stage { perspective: 1600px; display: flex; justify-content: center; }
+.shot-stage { perspective: 1150px; perspective-origin: 50% 30%; display: flex; justify-content: center; }
 .shot-frame {
   position: relative; width: min(940px, 100%); border-radius: 14px;
   box-shadow: 0 40px 120px rgba(0,0,0,0.6); overflow: hidden; will-change: transform;
