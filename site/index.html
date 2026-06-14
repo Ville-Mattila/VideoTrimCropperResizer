@@ -210,37 +210,63 @@
       <div class="download-head">
         <p class="kicker" data-reveal>Get Leike</p>
         <h2 class="section-title" data-reveal>Download &amp; go.</h2>
-        <p class="section-lede" data-reveal>Windows 10/11 (64-bit). Always pulls the latest release.</p>
+        <p class="section-lede" data-reveal>Windows, macOS, and Linux. Links always point to the latest release.</p>
       </div>
 
-      <div class="dl-grid">
-        <article class="dl-card featured" data-reveal>
-          <div class="dl-badge">Recommended</div>
-          <h3>Installer</h3>
-          <p class="dl-file">Leike-Setup.exe</p>
-          <p class="dl-desc">Installs the app and ffmpeg together, with a Start-Menu shortcut and uninstaller. No admin prompt.</p>
-          <a class="btn btn-primary magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-Setup.exe">
-            <span>Download installer</span>
-          </a>
-        </article>
+      <div class="dl-group">
+        <p class="dl-platform" data-reveal>Windows 10 / 11 · 64-bit</p>
+        <div class="dl-grid">
+          <article class="dl-card featured" data-reveal>
+            <div class="dl-badge">Recommended</div>
+            <h3>Installer</h3>
+            <p class="dl-file">Leike-Setup.exe</p>
+            <p class="dl-desc">Installs the app and ffmpeg together, with a Start-Menu shortcut and uninstaller. No admin prompt.</p>
+            <a class="btn btn-primary magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-Setup.exe">
+              <span>Download installer</span>
+            </a>
+          </article>
 
-        <article class="dl-card" data-reveal>
-          <h3>Portable</h3>
-          <p class="dl-file">Leike-portable-win64.zip</p>
-          <p class="dl-desc">No install. Unzip and run — ffmpeg is bundled inside. Great for a USB stick.</p>
-          <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-portable-win64.zip">
-            <span>Download zip</span>
-          </a>
-        </article>
+          <article class="dl-card" data-reveal>
+            <h3>Portable</h3>
+            <p class="dl-file">Leike-portable-win64.zip</p>
+            <p class="dl-desc">No install. Unzip and run — ffmpeg is bundled inside. Great for a USB stick.</p>
+            <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-portable-win64.zip">
+              <span>Download zip</span>
+            </a>
+          </article>
 
-        <article class="dl-card" data-reveal>
-          <h3>Standalone</h3>
-          <p class="dl-file">Leike.exe</p>
-          <p class="dl-desc">Just the app. Use it if you already have ffmpeg on your PATH.</p>
-          <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike.exe">
-            <span>Download exe</span>
-          </a>
-        </article>
+          <article class="dl-card" data-reveal>
+            <h3>Standalone</h3>
+            <p class="dl-file">Leike.exe</p>
+            <p class="dl-desc">Just the app. Use it if you already have ffmpeg on your PATH.</p>
+            <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike.exe">
+              <span>Download exe</span>
+            </a>
+          </article>
+        </div>
+      </div>
+
+      <div class="dl-group">
+        <p class="dl-platform" data-reveal>macOS &amp; Linux</p>
+        <div class="dl-grid dl-grid-2">
+          <article class="dl-card" data-reveal>
+            <h3>macOS</h3>
+            <p class="dl-file">Leike-macOS-arm64.zip</p>
+            <p class="dl-desc">Apple Silicon. Unzip and run the <code>.app</code>. Needs ffmpeg (<code>brew install ffmpeg</code>). Unsigned — first launch, right-click → Open.</p>
+            <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-macOS-arm64.zip">
+              <span>Download for Mac</span>
+            </a>
+          </article>
+
+          <article class="dl-card" data-reveal>
+            <h3>Linux</h3>
+            <p class="dl-file">Leike-linux-x86_64.tar.gz</p>
+            <p class="dl-desc">x86_64 binary. Extract and run <code>./Leike</code>. Needs ffmpeg (<code>sudo apt install ffmpeg</code>).</p>
+            <a class="btn btn-ghost magnetic" href="https://github.com/Ville-Mattila/Leike/releases/latest/download/Leike-linux-x86_64.tar.gz">
+              <span>Download for Linux</span>
+            </a>
+          </article>
+        </div>
       </div>
 
       <p class="dl-foot" data-reveal>

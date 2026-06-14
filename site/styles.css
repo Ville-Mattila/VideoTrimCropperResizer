@@ -265,6 +265,16 @@ section { position: relative; }
   margin-bottom: clamp(40px, 6vw, 60px); }
 .dl-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   text-align: left; align-items: stretch; }
+.dl-group { margin-bottom: 26px; }
+.dl-platform { text-align: left; font-family: var(--font-display); font-weight: 600;
+  font-size: 0.9rem; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.12em; margin-bottom: 14px; padding-left: 2px; }
+/* keep the 2-up macOS/Linux cards the same width as the Windows trio */
+.dl-grid-2 { grid-template-columns: repeat(auto-fit, minmax(260px, 360px));
+  justify-content: start; }
+.dl-desc code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.82em; background: rgba(255,197,81,0.10); color: var(--gold-light);
+  padding: 1px 5px; border-radius: 5px; }
 .dl-card {
   position: relative; display: flex; flex-direction: column; gap: 10px;
   padding: 32px 28px; border-radius: 20px; border: 1px solid var(--border-soft);
