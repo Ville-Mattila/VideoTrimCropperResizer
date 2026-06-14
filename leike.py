@@ -2694,9 +2694,26 @@ class App(BaseTk):
             messagebox.showerror("Grab failed", "Could not save the frame.")
 
     def export(self):
+        if not self.clips:
+            return
+        self._commit_active()
+        multi = len(self.clips) >= 2
+        if multi and self.mode == "batch":
+            return self._start_batch()
+        if multi and self.mode == "combine":
+            return self._start_combine()
+        return self._start_single()
+
+    def _begin_run(self):
+        """Shared pre-run UI: disable Export, enable Cancel, reset progress."""
+        self.export_btn.config(state="disabled")
+        if getattr(self, "cancel_btn", None):
+            self.cancel_btn.config(state="normal")
+        self.progress["value"] = 0
+
+    def _start_single(self):
         if not self.input_path:
             return
-        self.commit_times()
         if self.audio_only_var.get():
             ext, ftypes = ".mp3", [("MP3 audio", "*.mp3")]
         else:
@@ -2709,8 +2726,7 @@ class App(BaseTk):
             title="Export as", defaultextension=ext,
             initialfile=f"{base}_export{ext}",
             initialdir=self.out_dir or os.path.dirname(self.input_path),
-            filetypes=ftypes,
-        )
+            filetypes=ftypes)
         if not out:
             return
         if os.path.abspath(out) == os.path.abspath(self.input_path):
@@ -2718,16 +2734,97 @@ class App(BaseTk):
             return
         self.out_dir = os.path.dirname(out)
         self._save_config()
-
         dur = max(0.001, self.end_t - self.start_t)
         cmds = build_commands(self._settings(out))
-        self.export_btn.config(state="disabled")
-        if getattr(self, "cancel_btn", None):
-            self.cancel_btn.config(state="normal")
-        self.progress["value"] = 0
+        self._begin_run()
         self.status_label.config(text="Exporting...")
         threading.Thread(target=self._run_export, args=(cmds, dur, out),
                          daemon=True).start()
+
+    def _settings_for_clip(self, clip, out):
+        """Global recipe from the widgets, with trim+crop from `clip`."""
+        s = self._settings(out)
+        s.input_path = clip.path
+        s.src_w, s.src_h = clip.src_w, clip.src_h
+        s.start, s.end = clip.start, clip.end
+        s.crop = tuple(clip.crop) if clip.crop else None
+        return s
+
+    def _start_batch(self):
+        folder = filedialog.askdirectory(
+            title="Choose output folder for the batch",
+            initialdir=self.out_dir or os.path.dirname(self.clips[0].path))
+        if not folder:
+            return
+        self.out_dir = folder
+        self._save_config()
+        if self.audio_only_var.get():
+            ext = ".mp3"
+        else:
+            fmt = dict(FORMATS)[self.fmt_var.get()]
+            ext = {"mp4": ".mp4", "gif": ".gif", "webm": ".webm"}[fmt]
+        taken = set()
+        jobs = []
+        for clip in self.clips:
+            out = _batch_out_name(folder, clip.path, ext, taken)
+            s = self._settings_for_clip(clip, out)
+            cmds = build_commands(s)
+            dur = max(0.001, clip.end - clip.start)
+            jobs.append((clip, cmds, dur, out))
+        self._begin_run()
+        self.status_label.config(text=f"Exporting 1/{len(jobs)}…")
+        threading.Thread(target=self._run_batch, args=(jobs,), daemon=True).start()
+
+    def _run_batch(self, jobs):
+        self._cancelled = False
+        n = len(jobs)
+        done, failed = 0, []
+        for k, (clip, cmds, dur, out) in enumerate(jobs):
+            if self._cancelled:
+                break
+            self.after(0, lambda k=k, name=os.path.basename(clip.path):
+                       self.status_label.config(
+                           text=f"Exporting {k + 1}/{n}: {name}"))
+            ok, err = self._run_passes(cmds, dur, k / n, 1.0 / n)
+            for f in glob.glob(out + ".2pass*") + glob.glob(out + ".trf"):
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
+            if ok:
+                done += 1
+            else:
+                failed.append(os.path.basename(clip.path))
+                try:
+                    if os.path.exists(out):
+                        os.remove(out)
+                except OSError:
+                    pass
+        self.after(0, lambda: self._batch_done(done, failed, n))
+
+    def _batch_done(self, done, failed, n):
+        self.export_btn.config(state="normal")
+        if getattr(self, "cancel_btn", None):
+            self.cancel_btn.config(state="disabled")
+        if self._cancelled:
+            self.progress["value"] = 0
+            self.status_label.config(text=f"Cancelled ({done}/{n} done).")
+            return
+        self.progress["value"] = 100
+        if failed:
+            self.status_label.config(
+                text=f"Done: {done}/{n} ({len(failed)} failed).")
+            messagebox.showwarning(
+                "Batch finished",
+                f"Exported {done} of {n}.\nFailed:\n" + "\n".join(failed))
+        else:
+            self.status_label.config(text=f"Done: {done}/{n} exported.")
+            messagebox.showinfo("Batch complete", f"Exported all {n} files.")
+
+    def _start_combine(self):
+        # Temporary stub — the real combine export is implemented in Task C3.
+        messagebox.showinfo("Combine",
+                            "Combine export is coming in the next step.")
 
     def _run_passes(self, cmds, dur, base_frac, span):
         """Run one job's ffmpeg passes; map progress into
