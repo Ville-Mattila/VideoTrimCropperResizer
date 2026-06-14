@@ -952,6 +952,9 @@ class App(BaseTk):
 
         # --- source video state ---
         self.input_path = None
+        self.clips = []        # list[Clip]; the multi-file list
+        self.active = -1       # index of the clip in the editor, or -1
+        self.mode = "combine"  # "combine" | "batch" (only matters with 2+ clips)
         self.src_w = 0
         self.src_h = 0
         self.duration = 0.0
@@ -1986,72 +1989,90 @@ class App(BaseTk):
         )
 
     def on_drop(self, event):
-        # event.data is a brace/space-delimited list; take the first path.
-        raw = event.data.strip()
-        if raw.startswith("{"):
-            path = raw[1:raw.find("}")] if "}" in raw else raw[1:]
-        else:
-            path = raw.split()[0] if " " in raw and not os.path.exists(raw) else raw
-        self.load_path(path)
+        paths = self.tk.splitlist(event.data)
+        if paths:
+            self._add_clips(list(paths))
 
     def open_file(self):
-        path = filedialog.askopenfilename(
-            title="Open video",
+        paths = filedialog.askopenfilenames(
+            title="Open video(s)",
             filetypes=[
                 ("Video files",
                  "*.mp4 *.mov *.mkv *.avi *.webm *.m4v *.wmv *.flv *.mpg *.mpeg"),
                 ("All files", "*.*"),
             ],
         )
-        if path:
-            self.load_path(path)
+        if paths:
+            self._add_clips(list(paths))
 
-    def load_path(self, path):
-        if not path or not os.path.exists(path):
-            messagebox.showerror("Error", f"File not found:\n{path}")
+    def _add_clips(self, paths):
+        """Probe and append each path as a Clip; select the last one added."""
+        added = 0
+        for p in paths:
+            if not p or not os.path.exists(p):
+                continue
+            info = self.probe(p)
+            if not info:
+                self.status_label.config(
+                    text=f"Skipped (not a video): {os.path.basename(p)}")
+                continue
+            self.clips.append(clip_from_info(p, info))
+            added += 1
+        if added:
+            self._select_clip(len(self.clips) - 1)
+        return added
+
+    def _commit_active(self):
+        """Write the editor's current trim+crop back into the active Clip."""
+        if not (0 <= self.active < len(self.clips)):
             return
-        info = self.probe(path)
-        if not info:
-            messagebox.showerror(
-                "Error", "Could not read this file as a video.")
+        self.commit_times()        # parse the start/end entries -> start_t/end_t
+        c = self.clips[self.active]
+        c.start, c.end = self.start_t, self.end_t
+        c.crop = tuple(self.crop) if self.crop else None
+
+    def _select_clip(self, i):
+        """Load clip i into the editor (saving the current clip first)."""
+        if not (0 <= i < len(self.clips)):
             return
-        self.input_path = path
-        self.src_w, self.src_h, self.duration = info["w"], info["h"], info["dur"]
-        self.has_audio = info.get("has_audio", True)
-        # Source-info line: dims, length, then fps / codec / bitrate when known.
-        bits = [f"{self.src_w}x{self.src_h}", fmt_time(self.duration)]
-        if info.get("fps"):
-            bits.append(f"{info['fps']:g} fps")
-        if info.get("codec"):
-            bits.append(info["codec"])
-        if info.get("bitrate"):
-            bits.append(f"{round(info['bitrate'] / 1000)} kb/s")
+        if self.active != i:
+            self._commit_active()
+        self.stop_play()
+        self.active = i
+        c = self.clips[i]
+        self.input_path = c.path
+        self.src_w, self.src_h, self.duration = c.src_w, c.src_h, c.dur
+        self.has_audio = c.has_audio
+        bits = [f"{c.src_w}x{c.src_h}", fmt_time(c.dur)]
+        if c.fps:
+            bits.append(f"{c.fps:g} fps")
         self.file_label.config(
-            text=f"{os.path.basename(path)}   ({', '.join(bits)})")
-        self._set_audio_enabled(self.has_audio)
-
-        # Fit the source into the current canvas (recomputed on every resize).
+            text=f"{os.path.basename(c.path)}   ({', '.join(bits)})")
+        self._set_audio_enabled(c.has_audio)
         self._recompute_display()
-
-        # Reset edit state.
-        self.crop = None
+        self.crop = list(c.crop) if c.crop else None
         self.aspect = None
         self.aspect_var.set(ASPECTS[0][0])
-        self.start_t = 0.0
-        self.end_t = self.duration
-        self.playhead = 0.0
-        self.start_var.set(fmt_time(0.0))
-        self.end_var.set(fmt_time(self.duration))
-        self.scrub.config(to=max(self.duration, 0.001))
-        self.scrub_var.set(0.0)
+        self.start_t, self.end_t, self.playhead = c.start, c.end, c.start
+        self.start_var.set(fmt_time(c.start))
+        self.end_var.set(fmt_time(c.end))
+        self.scrub.config(to=max(c.dur, 0.001))
+        self.scrub_var.set(c.start)
         self.export_btn.config(state="normal")
         self.grab_btn.config(state="normal")
         if HAS_MPV:
             self.play_btn.config(state="normal")
             self.stop_btn.config(state="normal")
         self.update_labels()
-        self.request_preview(0.0)
+        self.request_preview(c.start)
         self._build_filmstrip()
+
+    def load_path(self, path):
+        if not path or not os.path.exists(path):
+            messagebox.showerror("Error", f"File not found:\n{path}")
+            return
+        if self._add_clips([path]) == 0:
+            messagebox.showerror("Error", "Could not read this file as a video.")
 
     def probe(self, path):
         """Return a metadata dict (w, h in DISPLAY orientation, dur, fps, codec,
