@@ -216,6 +216,23 @@ For each clip *i*:
   branches on `len(clips)` + mode into the existing single-file path, a new
   combine path, or a new batch path; multi-file `on_drop` / `open_file` append.
 
+## Combine recipe coverage (v2.3)
+
+Combine applies most of the global recipe to the joined stream: crop (per-clip),
+orientation, colour/denoise/sharpen, speed, fades (over the total joined
+duration), burned-in text and subtitles, **watermark overlay**, and audio gain.
+Deliberately **not** applied in Combine (each is either format-coercing,
+two-pass, or semantically odd across a join):
+
+- **GIF / MP3 / audio-only** — coerced to MP4 (a status hint says so).
+- **Target file size** (two-pass) and **stabilization** (two-pass vidstab) —
+  ignored; these stay single-clip / Batch features.
+- **Reverse / boomerang / loop** — ignored on both video and audio (combine
+  never reverses, so `areverse` is dropped to avoid A/V desync).
+
+Batch has none of these limits — each file runs through the full
+`build_commands` path, so every recipe feature works per-file.
+
 ## Error handling
 
 - A file that fails to probe on add is rejected with a status message and **not**
