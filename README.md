@@ -43,6 +43,10 @@ ffmpeg — install it with your package manager first
   *Free* — drag a box on the preview, move it, resize from the corners.
 - **Trim** with a scrubbable preview and a filmstrip timeline. *Fast trim*
   cuts losslessly (no re-encode) when the cut allows it.
+- **Combine or Batch** multiple files — drop a list of clips in the side
+  column, then either **Combine** them into one video (trim/crop each; clips of
+  different sizes are centred over a blurred fill) or **Batch**-export the whole
+  list through one recipe to a folder.
 - **Built-in playback** with audio and a **live effect preview** — see crop,
   rotation, and colour changes as it plays. Optional: the playback engine
   (libmpv) is fetched on demand via an in-app button, so the app stays small.

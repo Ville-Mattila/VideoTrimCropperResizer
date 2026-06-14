@@ -2,7 +2,7 @@
 ; Build with Build-installer.bat (which populates the staging\ folder first).
 
 #define MyAppName "Leike"
-#define MyAppVersion "2.2"
+#define MyAppVersion "2.3"
 #define MyAppPublisher "Ville Mattila"
 #define MyAppURL "https://github.com/Ville-Mattila/Leike"
 #define MyAppExeName "Leike.exe"
