@@ -103,8 +103,34 @@
   // floating scroll-cue dot
   gsap.to(".scroll-cue span", { y: 10, repeat: -1, yoyo: true, duration: 0.9, ease: "sine.inOut" });
 
-  // verb marquee — seamless loop (content is duplicated in markup)
-  gsap.to(".marquee-track", { xPercent: -50, repeat: -1, duration: 26, ease: "none" });
+  // verb marquee — clone the set enough times to overflow the viewport, then
+  // loop by exactly one set's width so it scrolls seamlessly (no gap, any size).
+  (function initMarquee() {
+    var track = document.querySelector(".marquee-track");
+    var firstSet = track && track.querySelector(".marquee-set");
+    if (!track || !firstSet) return;
+    var SPEED = 60; // px per second
+    var tween = null;
+    function build() {
+      var clones = track.querySelectorAll(".marquee-set");
+      for (var i = clones.length - 1; i >= 1; i--) clones[i].remove();
+      var setW = firstSet.getBoundingClientRect().width;
+      if (!setW) return;
+      var view = (track.parentElement || track).getBoundingClientRect().width || 1920;
+      var need = Math.ceil(view / setW) + 1;
+      for (var j = 1; j < need; j++) track.appendChild(firstSet.cloneNode(true));
+      if (tween) tween.kill();
+      gsap.set(track, { x: 0 });
+      tween = gsap.to(track, { x: -setW, duration: setW / SPEED, ease: "none", repeat: -1 });
+    }
+    build();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
+    var rt;
+    window.addEventListener("resize", function () {
+      clearTimeout(rt);
+      rt = setTimeout(build, 200);
+    });
+  })();
 
   /* ============================================================
      ScrollTrigger-driven effects
