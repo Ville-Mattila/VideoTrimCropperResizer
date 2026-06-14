@@ -174,11 +174,6 @@
         rotateX: 0, y: 0, scale: 1, opacity: 1, ease: "none",
         scrollTrigger: { trigger: "#shotStage", start: "top 85%", end: "top 35%", scrub: 1 }
       });
-    // gentle continued parallax on the image after it settles
-    gsap.to("#shotFrame img", {
-      yPercent: -6, ease: "none",
-      scrollTrigger: { trigger: "#shotStage", start: "top 35%", end: "bottom top", scrub: 1 }
-    });
 
     // generic reveals (section titles, ledes, kickers, download cards)
     gsap.utils.toArray("[data-reveal]").forEach(function (el) {
