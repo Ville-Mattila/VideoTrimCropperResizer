@@ -1623,6 +1623,11 @@ class App(BaseTk):
         self.combine_btn.config(state=state)
         self.batch_btn.config(state=state)
         self._update_export_button()
+        if multi and self.mode == "combine":
+            fmt = dict(FORMATS)[self.fmt_var.get()]
+            if fmt not in ("mp4", "webm") or self.audio_only_var.get():
+                self.status_label.config(
+                    text="Combine exports MP4/WebM — format will be MP4.")
 
     def _update_export_button(self):
         if not hasattr(self, "export_btn"):
@@ -2928,9 +2933,36 @@ class App(BaseTk):
             messagebox.showinfo("Batch complete", f"Exported all {n} files.")
 
     def _start_combine(self):
-        # Temporary stub — the real combine export is implemented in Task C3.
-        messagebox.showinfo("Combine",
-                            "Combine export is coming in the next step.")
+        for c in self.clips:
+            if not os.path.exists(c.path):
+                messagebox.showerror(
+                    "Missing file",
+                    f"This file is gone:\n{c.path}")
+                return
+        fmt = dict(FORMATS)[self.fmt_var.get()]
+        if fmt not in ("mp4", "webm"):       # GIF/mp3 not supported for combine
+            fmt = "mp4"
+        ext = ".webm" if fmt == "webm" else ".mp4"
+        base = os.path.splitext(os.path.basename(self.clips[0].path))[0]
+        out = filedialog.asksaveasfilename(
+            title="Combine & export as", defaultextension=ext,
+            initialfile=f"{base}_combined{ext}",
+            initialdir=self.out_dir or os.path.dirname(self.clips[0].path),
+            filetypes=([("MP4 video", "*.mp4")] if fmt == "mp4"
+                       else [("WebM video", "*.webm")]))
+        if not out:
+            return
+        self.out_dir = os.path.dirname(out)
+        self._save_config()
+        g = self._settings(out)
+        g.fmt = fmt
+        cmds = build_concat_commands(self.clips, g)
+        dur = sum(max(0.001, c.end - c.start) for c in self.clips) \
+            / (g.speed or 1.0)
+        self._begin_run()
+        self.status_label.config(text="Combining…")
+        threading.Thread(target=self._run_export, args=(cmds, dur, out),
+                         daemon=True).start()
 
     def _run_passes(self, cmds, dur, base_frac, span):
         """Run one job's ffmpeg passes; map progress into
