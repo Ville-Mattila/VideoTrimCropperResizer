@@ -51,3 +51,14 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; The playback engine (libmpv) is downloaded after install (the in-app "Enable
+; playback" button), so Setup doesn't track it — remove it and the install
+; folder explicitly.
+Type: files;          Name: "{app}\libmpv-2.dll"
+Type: files;          Name: "{app}\_engine_dl.7z"
+Type: dirifempty;     Name: "{app}"
+; Per-user settings live outside {app}; remove them for a clean uninstall so a
+; later reinstall starts fresh (default format H.264).
+Type: filesandordirs; Name: "{localappdata}\Leike"
