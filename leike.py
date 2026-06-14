@@ -31,7 +31,15 @@ except Exception:
     HAS_DND = False
 
 # Embedded playback (python-mpv + libmpv). Optional; the app falls back to the
-# frame preview when it (or its native library) is missing.
+# frame preview when it (or its native library) is missing. Help python-mpv
+# find a co-located libmpv-2.dll (next to the script, in the PyInstaller
+# bundle, or beside a frozen exe) before importing it.
+_mpv_dir = getattr(sys, "_MEIPASS", None) or os.path.dirname(
+    os.path.abspath(__file__))
+os.environ["PATH"] = _mpv_dir + os.pathsep + os.environ.get("PATH", "")
+if getattr(sys, "frozen", False):
+    os.environ["PATH"] = (os.path.dirname(sys.executable) + os.pathsep
+                          + os.environ["PATH"])
 try:
     import mpv
     HAS_MPV = True
