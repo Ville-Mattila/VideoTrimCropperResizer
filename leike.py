@@ -677,6 +677,20 @@ def _target_size_supported(fmt):
     return fmt == "mp4"
 
 
+def _format_controls(fmt):
+    """Which Export-tab controls apply to a given output format.
+    quality=CRF slider, gif_fps, fast_trim (lossless copy = H.264 only),
+    gpu=NVENC toggle, target_size (two-pass = H.264 only)."""
+    mp4_codec = fmt in ("mp4", "hevc", "av1")
+    return {
+        "quality": fmt != "gif",
+        "gif_fps": fmt == "gif",
+        "fast_trim": fmt == "mp4",
+        "gpu": mp4_codec,
+        "target_size": fmt == "mp4",
+    }
+
+
 def _probe_encoder(name):
     """True if ffmpeg can actually encode a frame with `name` — a real GPU
     capability check, not just 'is it compiled in' (e.g. av1_nvenc is listed in
@@ -1997,38 +2011,41 @@ class App(BaseTk):
     def _build_encoding_panel(self, parent):
         box = ttk.LabelFrame(parent, text="Encoding", padding=10)
         box.grid(row=1, column=0, sticky="ew", pady=(14, 0))
+        self.encoding_box = box      # shown/hidden per format in _on_format_change
         self.fast_trim_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
+        self.fast_trim_chk = ttk.Checkbutton(
             box, text="Fast trim when possible (lossless, no re-encode)",
-            variable=self.fast_trim_var,
-            command=self._update_export_hint).grid(row=0, column=0, sticky="w")
+            variable=self.fast_trim_var, command=self._update_export_hint)
+        self.fast_trim_chk.grid(row=0, column=0, sticky="w")
         # Default ON when a GPU is available; stays off (and disabled) otherwise.
         self.hw_var = tk.BooleanVar(value=self.has_nvenc)
         self.hw_chk = ttk.Checkbutton(
             box, text="Fast encode (GPU / NVENC)", variable=self.hw_var,
             command=self._update_export_hint)
         self.hw_chk.grid(row=1, column=0, sticky="w", pady=(2, 0))
+        self.no_nvenc_lbl = None
         if not self.has_nvenc:
             self.hw_chk.config(state="disabled")
-            ttk.Label(box, text="(no NVENC GPU detected)",
-                      foreground=MUTED).grid(row=2, column=0, sticky="w")
+            self.no_nvenc_lbl = ttk.Label(box, text="(no NVENC GPU detected)",
+                                          foreground=MUTED)
+            self.no_nvenc_lbl.grid(row=2, column=0, sticky="w")
 
-        size_box = ttk.Frame(box)
-        size_box.grid(row=3, column=0, sticky="w", pady=(10, 0))
-        ttk.Label(size_box, text="Target file size (MP4)").grid(
+        self.size_box = ttk.Frame(box)
+        self.size_box.grid(row=3, column=0, sticky="w", pady=(10, 0))
+        ttk.Label(self.size_box, text="Target file size").grid(
             row=0, column=0, columnspan=3, sticky="w")
         self.size_var = tk.StringVar(value=SIZE_TARGETS[0][0])
         size_cb = ttk.Combobox(
-            size_box, textvariable=self.size_var, state="readonly",
+            self.size_box, textvariable=self.size_var, state="readonly",
             values=[s[0] for s in SIZE_TARGETS], width=10)
         size_cb.grid(row=1, column=0, sticky="w")
         size_cb.bind("<<ComboboxSelected>>", lambda _e: self._on_size_change())
         self.size_custom_var = tk.StringVar(value="")
-        self.size_custom = ttk.Entry(size_box, textvariable=self.size_custom_var,
-                                     width=6)
+        self.size_custom = ttk.Entry(self.size_box,
+                                     textvariable=self.size_custom_var, width=6)
         self.size_custom.bind("<KeyRelease>",
                               lambda _e: self._update_export_hint())
-        self.size_mb_lbl = ttk.Label(size_box, text="MB")
+        self.size_mb_lbl = ttk.Label(self.size_box, text="MB")
 
     def _on_size_change(self):
         if dict(SIZE_TARGETS)[self.size_var.get()] == "custom":
@@ -2269,9 +2286,19 @@ class App(BaseTk):
     def _on_crf(self, _v):
         self.crf_label.config(text=str(self.crf_var.get()))
 
+    @staticmethod
+    def _show(widget, visible):
+        """Grid (restoring its remembered config) or grid_remove a widget."""
+        if visible:
+            widget.grid()
+        else:
+            widget.grid_remove()
+
     def _on_format_change(self):
         fmt = dict(FORMATS)[self.fmt_var.get()]
-        if fmt == "gif":
+        c = _format_controls(fmt)
+        # Quality (CRF) vs GIF frame-rate in the export panel.
+        if c["gif_fps"]:
             self.quality_row.grid_remove()
             self.gif_row.grid(row=5, column=0, columnspan=2, sticky="w",
                               pady=(0, 6))
@@ -2279,6 +2306,14 @@ class App(BaseTk):
             self.gif_row.grid_remove()
             self.quality_row.grid(row=4, column=0, columnspan=2, sticky="ew",
                                   pady=(0, 6))
+        # Encoding box (fast-trim / GPU / target size) — show only what applies.
+        self._show(self.fast_trim_chk, c["fast_trim"])
+        self._show(self.hw_chk, c["gpu"])
+        if self.no_nvenc_lbl is not None:
+            self._show(self.no_nvenc_lbl, c["gpu"])
+        self._show(self.size_box, c["target_size"])
+        self._show(self.encoding_box,
+                   c["fast_trim"] or c["gpu"] or c["target_size"])
         self._update_export_hint()
         if hasattr(self, "mode_lbls"):
             self._update_multi_ui()

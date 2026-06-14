@@ -94,3 +94,19 @@ def test_build_commands_hevc_adds_watermark_input(leike, tmp_path):
     cmds = leike["build_commands"](
         mk(leike, fmt="hevc", watermark_path=str(wm), output_path="out.mp4"))
     assert str(wm) in " ".join(cmds[0])   # watermark added as a 2nd input
+
+
+# ---- per-format Export-tab control visibility -----------------------------
+
+def test_format_controls_matrix(leike):
+    f = leike["_format_controls"]
+    assert f("mp4") == {"quality": True, "gif_fps": False, "fast_trim": True,
+                        "gpu": True, "target_size": True}
+    assert f("hevc") == {"quality": True, "gif_fps": False, "fast_trim": False,
+                         "gpu": True, "target_size": False}
+    assert f("av1") == {"quality": True, "gif_fps": False, "fast_trim": False,
+                        "gpu": True, "target_size": False}
+    assert f("webm") == {"quality": True, "gif_fps": False, "fast_trim": False,
+                         "gpu": False, "target_size": False}
+    assert f("gif") == {"quality": False, "gif_fps": True, "fast_trim": False,
+                        "gpu": False, "target_size": False}
