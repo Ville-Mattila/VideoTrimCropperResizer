@@ -719,6 +719,25 @@ def _batch_out_name(folder, src_path, ext, taken):
     return os.path.join(folder, name)
 
 
+def _combine_target(clips, scale_cap=None):
+    """Common canvas (W, H, fps) for combining: the largest clip size after its
+    own crop, the highest fps, with an optional longest-side cap."""
+    ws, hs, fpss = [], [], []
+    for c in clips:
+        if c.crop:
+            w, h = even(c.crop[2]), even(c.crop[3])
+        else:
+            w, h = even(c.src_w), even(c.src_h)
+        ws.append(max(2, w))
+        hs.append(max(2, h))
+        fpss.append(c.fps or 30.0)
+    W, H = max(ws), max(hs)
+    if scale_cap and max(W, H) > scale_cap:
+        f = scale_cap / max(W, H)
+        W, H = even(W * f), even(H * f)
+    return max(2, W), max(2, H), max(fpss)
+
+
 def build_commands(s):
     """Return a list of ffmpeg command arg-lists (one or more passes)."""
     dur = max(0.001, s.end - s.start)

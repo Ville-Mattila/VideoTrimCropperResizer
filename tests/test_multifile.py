@@ -32,3 +32,22 @@ def test_batch_out_name_distinct_stems(leike, tmp_path):
     b = leike["_batch_out_name"](str(tmp_path), "b.mp4", ".mp4", taken)
     assert a.endswith("a_export.mp4")
     assert b.endswith("b_export.mp4")
+
+
+def test_combine_target_largest_and_fps(leike):
+    Clip = leike["Clip"]
+    clips = [Clip("a", 1280, 720, 5, fps=30, end=5),
+             Clip("b", 1920, 1080, 5, fps=60, end=5)]
+    assert leike["_combine_target"](clips) == (1920, 1080, 60.0)
+
+def test_combine_target_uses_per_clip_crop(leike):
+    Clip = leike["Clip"]
+    clips = [Clip("a", 1920, 1080, 5, end=5, crop=(0, 0, 640, 480))]
+    assert leike["_combine_target"](clips)[:2] == (640, 480)
+
+def test_combine_target_applies_scale_cap(leike):
+    Clip = leike["Clip"]
+    clips = [Clip("a", 1280, 720, 5, fps=30, end=5),
+             Clip("b", 1920, 1080, 5, fps=60, end=5)]
+    W, H, F = leike["_combine_target"](clips, scale_cap=1280)
+    assert max(W, H) == 1280 and (W, H) == (1280, 720) and F == 60.0
