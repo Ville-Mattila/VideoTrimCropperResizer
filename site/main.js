@@ -80,7 +80,9 @@
   /* ============================================================
      HERO intro timeline
      ============================================================ */
-  gsap.set(".wordmark", { clipPath: "inset(0 100% 0 0)", opacity: 1, scale: 0.96 });
+  gsap.set(".wordmark", { opacity: 1 });
+  gsap.set(".wm-left", { xPercent: -100, opacity: 0 });
+  gsap.set(".wm-right", { xPercent: 100, opacity: 0 });
   gsap.set([".eyebrow", ".sub", ".hero-cta", ".marquee", ".scroll-cue"], { opacity: 0, y: 26 });
   gsap.set(".lede .word", { yPercent: 115 });
   gsap.set(".lede", { opacity: 1 });
@@ -88,7 +90,10 @@
   var hero = gsap.timeline({ defaults: { ease: "power3.out" }, delay: 0.15 });
   hero
     .to(".eyebrow", { opacity: 1, y: 0, duration: 0.7 })
-    .to(".wordmark", { clipPath: "inset(0 0% 0 0)", scale: 1, duration: 1.15, ease: "power4.out" }, "-=0.35")
+    // the cream "LEI" slides in from the left, the gold "KE" from the right,
+    // meeting at the wordmark's natural seam.
+    .to(".wm-left", { xPercent: 0, opacity: 1, duration: 1.1, ease: "power4.out" }, "-=0.3")
+    .to(".wm-right", { xPercent: 0, opacity: 1, duration: 1.1, ease: "power4.out" }, "<")
     .to(".lede .word", { yPercent: 0, duration: 0.9, stagger: 0.06, ease: "power4.out" }, "-=0.7")
     .to(".sub", { opacity: 1, y: 0, duration: 0.7 }, "-=0.55")
     .to(".hero-cta", { opacity: 1, y: 0, duration: 0.7 }, "-=0.5")
