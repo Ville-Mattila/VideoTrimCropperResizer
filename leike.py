@@ -2035,9 +2035,9 @@ class App(BaseTk):
         """Load clip i into the editor (saving the current clip first)."""
         if not (0 <= i < len(self.clips)):
             return
-        if self.active != i:
-            self._commit_active()
-        self.stop_play()
+        if self.active == i:
+            return                       # re-selecting the active clip: no-op
+        self._commit_active()
         self.active = i
         c = self.clips[i]
         self.input_path = c.path
@@ -2058,6 +2058,7 @@ class App(BaseTk):
         self.end_var.set(fmt_time(c.end))
         self.scrub.config(to=max(c.dur, 0.001))
         self.scrub_var.set(c.start)
+        self.stop_play()                 # tear down playback (now on the new clip)
         self.export_btn.config(state="normal")
         self.grab_btn.config(state="normal")
         if HAS_MPV:
