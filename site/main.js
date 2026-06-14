@@ -113,7 +113,7 @@
         { xPercent: 4,  duration: 0.10, ease: "power1.out" },
         { xPercent: 0,  duration: 0.14, ease: "power2.out" }
       ] }, "<")
-    .to([".wm-left", ".wm-right"], { opacity: 1, duration: 0.8, ease: "power2.out" }, "<")
+    .to([".wm-left", ".wm-right"], { opacity: 1, duration: 1.2, ease: "none" }, "<")
     .to(".lede .word", { yPercent: 0, duration: 0.9, stagger: 0.06, ease: "power4.out" }, "-=0.8")
     .to(".sub", { opacity: 1, y: 0, duration: 0.7 }, "-=0.55")
     .to(".hero-cta", { opacity: 1, y: 0, duration: 0.7 }, "-=0.5")
