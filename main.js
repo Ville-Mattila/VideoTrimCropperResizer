@@ -96,12 +96,24 @@
   var hero = gsap.timeline({ defaults: { ease: "power3.out" }, delay: 0.15 });
   hero
     .to(".eyebrow", { opacity: 1, y: 0, duration: 0.7 })
-    // the cream "LEI" slides in from the left, the gold "KE" from the right,
-    // overshooting a little as they meet (a bounce at the seam) while fading up
-    // from transparent.
-    .to(".wm-left", { xPercent: 0, duration: 1.2, ease: "back.out(0.9)" }, "-=0.3")
-    .to(".wm-right", { xPercent: 0, duration: 1.2, ease: "back.out(0.9)" }, "<")
-    .to([".wm-left", ".wm-right"], { opacity: 1, duration: 1.0, ease: "power2.out" }, "<")
+    // the cream "LEI" and gold "KE" accelerate in from the sides, slam the seam,
+    // bounce apart hard, then a small dampened bounce and a gentle settle — while
+    // fading up from transparent.
+    .to(".wm-left", { keyframes: [
+        { xPercent: 0,   duration: 0.55, ease: "power2.in" },   // fall + hard hit
+        { xPercent: -20, duration: 0.16, ease: "power1.out" },  // big bounce apart
+        { xPercent: 0,   duration: 0.18, ease: "power1.in" },   // back to the seam
+        { xPercent: -4,  duration: 0.10, ease: "power1.out" },  // small dampened bounce
+        { xPercent: 0,   duration: 0.14, ease: "power2.out" }   // gentle settle
+      ] }, "-=0.3")
+    .to(".wm-right", { keyframes: [
+        { xPercent: 0,  duration: 0.55, ease: "power2.in" },
+        { xPercent: 20, duration: 0.16, ease: "power1.out" },
+        { xPercent: 0,  duration: 0.18, ease: "power1.in" },
+        { xPercent: 4,  duration: 0.10, ease: "power1.out" },
+        { xPercent: 0,  duration: 0.14, ease: "power2.out" }
+      ] }, "<")
+    .to([".wm-left", ".wm-right"], { opacity: 1, duration: 0.8, ease: "power2.out" }, "<")
     .to(".lede .word", { yPercent: 0, duration: 0.9, stagger: 0.06, ease: "power4.out" }, "-=0.8")
     .to(".sub", { opacity: 1, y: 0, duration: 0.7 }, "-=0.55")
     .to(".hero-cta", { opacity: 1, y: 0, duration: 0.7 }, "-=0.5")
