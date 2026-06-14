@@ -238,6 +238,34 @@ class ExportSettings:
     stabilize: bool = False         # two-pass vidstab deshake
 
 
+@dataclass
+class Clip:
+    """One file in the multi-file list. Trim (start/end) and crop are per-file;
+    every other setting is the shared global recipe taken from the widgets."""
+    path: str
+    src_w: int
+    src_h: int
+    dur: float
+    rotation: int = 0
+    fps: float = 30.0
+    has_audio: bool = True
+    start: float = 0.0
+    end: float = 0.0
+    crop: tuple | None = None       # (x, y, w, h) source px, or None
+
+
+def clip_from_info(path, info):
+    """Build a Clip from a probe() info dict; trim spans the whole file."""
+    dur = float(info["dur"])
+    return Clip(
+        path=path,
+        src_w=int(info["w"]), src_h=int(info["h"]), dur=dur,
+        rotation=int(info.get("rotation", 0) or 0),
+        fps=float(info.get("fps") or 30.0),
+        has_audio=bool(info.get("has_audio", True)),
+        start=0.0, end=dur, crop=None)
+
+
 def _out_dims(s):
     """Final output (w, h) after crop + optional downscale, even numbers."""
     w, h = (s.crop[2], s.crop[3]) if s.crop else (s.src_w, s.src_h)
