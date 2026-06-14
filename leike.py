@@ -1536,20 +1536,23 @@ class App(BaseTk):
 
         ttk.Label(wrap, text="Files").grid(row=0, column=0, sticky="w")
 
-        # Combine / Batch segmented toggle (disabled until 2+ clips)
-        self.mode_var = tk.StringVar(value="combine")
-        modebar = ttk.Frame(wrap)
+        # Combine / Batch segmented toggle (custom-themed; live only with 2+ clips)
+        modebar = tk.Frame(wrap, bg=BORDER, highlightthickness=1,
+                           highlightbackground=BORDER)
         modebar.grid(row=1, column=0, sticky="ew", pady=(2, 6))
-        modebar.columnconfigure(0, weight=1)
-        modebar.columnconfigure(1, weight=1)
-        self.combine_btn = ttk.Radiobutton(
-            modebar, text="Combine", value="combine", variable=self.mode_var,
-            command=lambda: self._set_mode("combine"), style="Toolbutton")
-        self.batch_btn = ttk.Radiobutton(
-            modebar, text="Batch", value="batch", variable=self.mode_var,
-            command=lambda: self._set_mode("batch"), style="Toolbutton")
-        self.combine_btn.grid(row=0, column=0, sticky="ew")
-        self.batch_btn.grid(row=0, column=1, sticky="ew")
+        modebar.columnconfigure(0, weight=1, uniform="mode")
+        modebar.columnconfigure(1, weight=1, uniform="mode")
+        self.mode_lbls = {}
+        for i, m in enumerate(("combine", "batch")):
+            lbl = tk.Label(modebar, text=m.capitalize(), bg=PANEL_BG, fg=MUTED,
+                           font=("Segoe UI", 9), pady=4, cursor="hand2")
+            lbl.grid(row=0, column=i, sticky="nsew",
+                     padx=(0, 1) if i == 0 else 0)
+            lbl.bind("<Button-1>", lambda _e, mm=m: self._mode_click(mm))
+            lbl.bind("<Enter>", lambda _e, mm=m: self._mode_hover(mm, True))
+            lbl.bind("<Leave>", lambda _e, mm=m: self._mode_hover(mm, False))
+            self.mode_lbls[m] = lbl
+        self._refresh_mode_toggle()
 
         self.file_listbox = tk.Listbox(
             wrap, activestyle="none", exportselection=False,
@@ -1630,11 +1633,32 @@ class App(BaseTk):
         self.mode = mode
         self._update_multi_ui()
 
+    def _mode_click(self, mode):
+        if len(self.clips) >= 2 and mode != self.mode:
+            self._set_mode(mode)
+
+    def _mode_hover(self, mode, entering):
+        if len(self.clips) < 2 or mode == self.mode:
+            return
+        self.mode_lbls[mode].config(fg=TEXT if entering else MUTED)
+
+    def _refresh_mode_toggle(self):
+        """Style the Combine/Batch labels: gold pill = active, muted = inactive,
+        flat-muted (no pill) when disabled until there are 2+ clips."""
+        if not hasattr(self, "mode_lbls"):
+            return
+        enabled = len(self.clips) >= 2
+        for m, lbl in self.mode_lbls.items():
+            if enabled and m == self.mode:
+                lbl.config(bg=GOLD, fg=BASE_BG, cursor="hand2")
+            elif enabled:
+                lbl.config(bg=PANEL_BG, fg=MUTED, cursor="hand2")
+            else:
+                lbl.config(bg=PANEL_BG, fg=MUTED, cursor="arrow")
+
     def _update_multi_ui(self):
         multi = len(self.clips) >= 2
-        state = "normal" if multi else "disabled"
-        self.combine_btn.config(state=state)
-        self.batch_btn.config(state=state)
+        self._refresh_mode_toggle()
         self._update_export_button()
         if multi and self.mode == "combine":
             fmt = dict(FORMATS)[self.fmt_var.get()]
@@ -2207,7 +2231,7 @@ class App(BaseTk):
             self.quality_row.grid(row=4, column=0, columnspan=2, sticky="ew",
                                   pady=(0, 6))
         self._update_export_hint()
-        if hasattr(self, "combine_btn"):
+        if hasattr(self, "mode_lbls"):
             self._update_multi_ui()
 
     def _update_export_hint(self):
