@@ -19,3 +19,9 @@ def test_tabs_and_widgets(app):
     # the relocations: trim row + export footer are present
     assert app.export_btn is not None and app.trim_label is not None
     assert app.cancel_btn is not None and app.export_hint is not None
+
+
+def test_playback_symbols_exist(leike):
+    # playback is optional; the flag, wrapper, and pure helper always exist
+    assert "HAS_MPV" in leike
+    assert "Player" in leike and "build_preview_vf" in leike

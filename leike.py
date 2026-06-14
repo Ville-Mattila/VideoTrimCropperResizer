@@ -30,6 +30,14 @@ except Exception:
     BaseTk = tk.Tk
     HAS_DND = False
 
+# Embedded playback (python-mpv + libmpv). Optional; the app falls back to the
+# frame preview when it (or its native library) is missing.
+try:
+    import mpv
+    HAS_MPV = True
+except Exception:
+    HAS_MPV = False
+
 # Brand palette, extracted from the Leike logo (leike.svg): warm near-black
 # and marigold gold.
 GOLD       = "#FFC551"   # accent
@@ -715,6 +723,88 @@ def save_config(cfg):
             json.dump(cfg, f)
     except OSError:
         pass
+
+
+class Player:
+    """Thin, defensive wrapper around an embedded libmpv instance.
+
+    Construction can fail (no libmpv, or embedding unsupported on this
+    platform); callers check `.ok`. All methods no-op when not ok.
+    """
+
+    def __init__(self, wid):
+        self.ok = False
+        self.mpv = None
+        if not HAS_MPV:
+            return
+        try:
+            self.mpv = mpv.MPV(wid=str(wid), vo="gpu", keep_open="yes",
+                               idle="yes", osc=False,
+                               input_default_bindings=False)
+            self.ok = True
+        except Exception:
+            self.mpv = None
+            self.ok = False
+
+    def load(self, path, start=0.0):
+        if not self.ok:
+            return
+        try:
+            self.mpv.play(path)
+            self.mpv.wait_until_playing()
+            self.mpv.seek(start, reference="absolute")
+        except Exception:
+            pass
+
+    def set_graph(self, vf, props):
+        if not self.ok:
+            return
+        try:
+            for k, v in props.items():
+                self.mpv[k] = v
+            self.mpv.vf = vf or ""
+        except Exception:
+            pass
+
+    def set_pause(self, paused):
+        if self.ok:
+            try:
+                self.mpv.pause = bool(paused)
+            except Exception:
+                pass
+
+    def set_ab_loop(self, a, b):
+        if not self.ok:
+            return
+        try:
+            self.mpv["ab-loop-a"] = a if a is not None else "no"
+            self.mpv["ab-loop-b"] = b if b is not None else "no"
+        except Exception:
+            pass
+
+    def seek(self, t):
+        if self.ok:
+            try:
+                self.mpv.seek(t, reference="absolute")
+            except Exception:
+                pass
+
+    def time_pos(self):
+        if not self.ok:
+            return None
+        try:
+            return self.mpv.time_pos
+        except Exception:
+            return None
+
+    def destroy(self):
+        if self.mpv is not None:
+            try:
+                self.mpv.terminate()
+            except Exception:
+                pass
+        self.mpv = None
+        self.ok = False
 
 
 class App(BaseTk):
