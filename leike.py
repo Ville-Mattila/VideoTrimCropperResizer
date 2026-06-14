@@ -704,6 +704,21 @@ def _stabilize_passes(s):
     return [p1, p2]
 
 
+def _batch_out_name(folder, src_path, ext, taken):
+    """Auto-named batch output: <stem>_export<ext>, numbered on collision.
+    `taken` is a set of lower-cased basenames already used this run; names that
+    already exist on disk in `folder` are also skipped. Never overwrites."""
+    stem = os.path.splitext(os.path.basename(src_path))[0]
+    base = f"{stem}_export"
+    name = base + ext
+    i = 2
+    while name.lower() in taken or os.path.exists(os.path.join(folder, name)):
+        name = f"{base}_{i}{ext}"
+        i += 1
+    taken.add(name.lower())
+    return os.path.join(folder, name)
+
+
 def build_commands(s):
     """Return a list of ffmpeg command arg-lists (one or more passes)."""
     dur = max(0.001, s.end - s.start)
