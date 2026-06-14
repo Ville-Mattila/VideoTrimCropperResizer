@@ -2729,9 +2729,10 @@ class App(BaseTk):
         threading.Thread(target=self._run_export, args=(cmds, dur, out),
                          daemon=True).start()
 
-    def _run_export(self, cmds, dur, out):
-        """Run each pass in sequence; report combined progress; honour cancel."""
-        self._cancelled = False
+    def _run_passes(self, cmds, dur, base_frac, span):
+        """Run one job's ffmpeg passes; map progress into
+        [base_frac, base_frac+span] of the bar. Returns (ok, err). Honours
+        self._cancelled and records self.export_proc for Cancel."""
         time_re = re.compile(r"time=(\d+):(\d+):(\d+\.\d+)")
         last_err = ""
         n = len(cmds)
@@ -2741,8 +2742,7 @@ class App(BaseTk):
                     cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                     text=True, creationflags=NO_WINDOW)
             except OSError as exc:
-                return self.after(
-                    0, lambda e=str(exc): self._export_done(False, e, out))
+                return (False, str(exc))
             self.export_proc = proc
             for line in proc.stderr:
                 if self._cancelled:
@@ -2752,18 +2752,23 @@ class App(BaseTk):
                 if m:
                     t = (int(m.group(1)) * 3600 + int(m.group(2)) * 60
                          + float(m.group(3)))
-                    frac = (i + min(1.0, t / dur)) / n
+                    frac = base_frac + span * (i + min(1.0, t / dur)) / n
                     self.after(0, lambda p=frac * 100:
                                self.progress.config(value=p))
                 elif line.strip():
                     last_err = line.strip()
             code = proc.wait()
             if self._cancelled:
-                break
+                return (False, last_err)
             if code != 0:
-                return self.after(
-                    0, lambda e=last_err: self._export_done(False, e, out))
-        self.after(0, lambda: self._export_done(not self._cancelled, last_err, out))
+                return (False, last_err)
+        return (True, last_err)
+
+    def _run_export(self, cmds, dur, out):
+        """Single-file export: run all passes, then report done."""
+        self._cancelled = False
+        ok, err = self._run_passes(cmds, dur, 0.0, 1.0)
+        self.after(0, lambda: self._export_done(ok, err, out))
 
     def _export_done(self, ok, err, out):
         self.export_btn.config(state="normal")
